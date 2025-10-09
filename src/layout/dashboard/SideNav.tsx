@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useDispatch } from "react-redux";
 import { Button } from "@/components/ui/button";
 import {
   ChevronLeft,
@@ -17,10 +16,10 @@ import {
   LogOut
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Import your logo assets
 import { NavLink, useLocation, useNavigate } from "react-router";
-import { logout } from "@/auth/authSlice";
 
 type Props = {
   drawerWidth: number;
@@ -29,11 +28,10 @@ type Props = {
 };
 
 function SideNav({ drawerWidth, handleDrawerToggle, mobileOpen }: Props) {
-  const dispatch = useDispatch();
+  const { signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [isLoading, setIsLoading] = useState(false);
-  // const user = useSelector(selectCurrentUser);
   const sideNavRef = useRef<HTMLDivElement>(null);
   const userRole: "admin" | "individual" | "organization" = "individual"; // Temporary user role assignment for development purposes
 
@@ -55,9 +53,9 @@ function SideNav({ drawerWidth, handleDrawerToggle, mobileOpen }: Props) {
     };
   }, [mobileOpen, handleDrawerToggle]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setIsLoading(true);
-    dispatch(logout());
+    await signOut();
     navigate("/login");
     setIsLoading(false);
   };

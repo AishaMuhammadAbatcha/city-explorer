@@ -1,5 +1,0 @@
-node_modules
-.env
-.vercel
-# /src/generated/prisma
-# /src/config/ca.pem
