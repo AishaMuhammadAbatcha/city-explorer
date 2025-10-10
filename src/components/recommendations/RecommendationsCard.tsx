@@ -74,7 +74,7 @@ export function RecommendationsCard({
           {subtitle && <CardDescription>{subtitle}</CardDescription>}
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: maxItems }).map((_, i) => (
               <PlaceCardSkeleton key={i} />
             ))}
@@ -169,7 +169,7 @@ export function RecommendationsCard({
         {subtitle && <CardDescription>{subtitle}</CardDescription>}
       </CardHeader>
       <CardContent>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {displayRecommendations.map((recommendation) => (
             <RecommendationItem
               key={recommendation.placeId}
@@ -206,23 +206,36 @@ function RecommendationItem({ recommendation, onSelect, showScore }: Recommendat
   const address = place?.formatted_address || business?.address || 'Address not available'
   const rating = place?.rating || business?.rating || 0
   const totalReviews = place?.user_ratings_total || business?.total_reviews || 0
-  const photo = place?.photos?.[0] ?
-    `https://maps.googleapis.com/maps/api/place/photo?maxwidth=300&photoreference=${place.photos[0]}&key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}` :
-    business?.image_url || '/api/placeholder/300/200'
+
+  // Get photo URL from Google Places or business
+  const getPhotoUrl = () => {
+    if (place?.photos?.[0]) {
+      // Use Google Maps Places API photo reference
+      const photoRef = place.photos[0].getUrl ?
+        place.photos[0].getUrl({ maxWidth: 400 }) :
+        null
+      if (photoRef) return photoRef
+    }
+
+    // Fallback to business image or placeholder
+    return business?.image_url || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop'
+  }
+
+  const photo = getPhotoUrl()
 
   return (
     <Card
       className="cursor-pointer hover:shadow-md transition-shadow duration-200 bg-white"
       onClick={() => onSelect?.(recommendation)}
     >
-      <div className="relative">
+      <div className="relative overflow-hidden bg-gray-100">
         <img
           src={photo}
           alt={name}
           className="w-full h-32 object-cover rounded-t-lg"
           onError={(e) => {
             const target = e.target as HTMLImageElement
-            target.src = '/api/placeholder/300/200'
+            target.src = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop'
           }}
         />
         {showScore && (

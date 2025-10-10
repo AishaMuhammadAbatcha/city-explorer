@@ -186,6 +186,16 @@ This project is private and proprietary.
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
+## 📚 Documentation
+
+Additional documentation is available in the [`docs/`](./docs) folder:
+
+- **[Deployment Guide](./docs/DEPLOYMENT.md)** - Complete deployment instructions for Vercel
+- **[Troubleshooting](./docs/TROUBLESHOOTING.md)** - Common issues and solutions
+- **[Backend Setup](./docs/BACKEND_SETUP.md)** - Supabase backend configuration
+- **[Architecture](./docs/SIMPLIFIED_ARCHITECTURE.md)** - System architecture overview
+- **[Migration Guide](./docs/MIGRATION_SUCCESS.md)** - Vite migration details
+
 ## 📞 Support
 
 For issues or questions, please open an issue in the GitHub repository.

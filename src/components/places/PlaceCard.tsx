@@ -13,9 +13,14 @@ interface PlaceCardProps {
 export const PlaceCard: React.FC<PlaceCardProps> = ({ place, onSelect }) => {
   const getPlacePhoto = () => {
     if (place.photos && place.photos.length > 0) {
-      return placesService.getPhotoUrl(place.photos[0], 300)
+      try {
+        return placesService.getPhotoUrl(place.photos[0], 300)
+      } catch (error) {
+        console.error('Error getting photo URL:', error)
+      }
     }
-    return '/api/placeholder/300/200'
+    // Use a nice fallback image instead of placeholder
+    return 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop'
   }
 
   const getPriceLevel = (level?: number) => {
@@ -37,14 +42,15 @@ export const PlaceCard: React.FC<PlaceCardProps> = ({ place, onSelect }) => {
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200">
-      <div className="relative">
+      <div className="relative overflow-hidden bg-gray-100">
         <img
           src={getPlacePhoto()}
           alt={place.name}
           className="w-full h-48 object-cover rounded-t-lg"
+          loading="lazy"
           onError={(e) => {
             const target = e.target as HTMLImageElement
-            target.src = '/api/placeholder/300/200'
+            target.src = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop'
           }}
         />
         {place.business_status === 'OPERATIONAL' && (
