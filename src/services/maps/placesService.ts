@@ -2,6 +2,10 @@ import { Loader } from '@googlemaps/js-api-loader'
 
 const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
 
+if (!API_KEY) {
+  console.error('VITE_GOOGLE_MAPS_API_KEY is not defined in environment variables')
+}
+
 export interface GooglePlace {
   place_id: string
   name: string
@@ -54,6 +58,10 @@ class GoogleMapsPlacesService {
   async initialize(): Promise<void> {
     if (this.isLoaded) return
 
+    if (!API_KEY) {
+      throw new Error('Google Maps API key is not configured. Please set VITE_GOOGLE_MAPS_API_KEY in your environment variables.')
+    }
+
     try {
       await this.loader.load()
 
@@ -64,7 +72,7 @@ class GoogleMapsPlacesService {
       this.isLoaded = true
     } catch (error) {
       console.error('Failed to load Google Maps API:', error)
-      throw error
+      throw new Error(`Failed to initialize Google Maps: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
