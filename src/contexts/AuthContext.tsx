@@ -37,11 +37,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             console.warn('Auth initialization timeout - setting loading to false')
             setLoading(false)
           }
-        }, 10000) // 10 second timeout
+        }, 5000) // 5 second timeout (reduced from 10)
 
-        const { data: { session } } = await supabase.auth.getSession()
+        const { data: { session }, error } = await supabase.auth.getSession()
 
         if (!mounted) {
+          clearTimeout(timeoutId)
+          return
+        }
+
+        if (error) {
+          console.error('Error getting session:', error)
+          setLoading(false)
           clearTimeout(timeoutId)
           return
         }
@@ -50,7 +57,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(session?.user ?? null)
 
         if (session?.user) {
-          await fetchProfile(session.user.id)
+          // Fetch profile but don't block on it - set user first
+          fetchProfile(session.user.id)
         } else {
           setLoading(false)
         }
@@ -70,8 +78,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return
+
+      console.log('Auth state change:', event, session?.user?.id)
 
       setSession(session)
       setUser(session?.user ?? null)

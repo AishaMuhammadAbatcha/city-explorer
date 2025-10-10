@@ -30,6 +30,7 @@ type ProtectedRouteProps = {
 const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
   const { user, profile, loading } = useAuth();
 
+  // Always show loading state while checking authentication
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -41,8 +42,21 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
     );
   }
 
-  if (!user || !profile) {
+  // Only redirect to login if we're done loading and there's no user
+  if (!user) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Wait for profile to load before checking role - prevent premature redirects
+  if (!profile) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center space-y-4">
+          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-gray-600">Loading profile...</p>
+        </div>
+      </div>
+    );
   }
 
   if (requiredRole && profile.role !== requiredRole) {
