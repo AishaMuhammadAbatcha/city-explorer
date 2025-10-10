@@ -1,6 +1,7 @@
 import Router from "./routers/Router";
 import { Toaster } from "@/components/ui/sonner";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import EnvDebug from "@/components/EnvDebug";
 
 function App() {
   console.log('App component rendering...');
@@ -17,6 +18,7 @@ function App() {
           },
         }}
       />
+      <EnvDebug />
     </ErrorBoundary>
   );
 }

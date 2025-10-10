@@ -88,6 +88,26 @@ const EmptyState: React.FC<EmptyStateProps> = ({ onMessageClick }) => {
 const ExploreAI: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState<string>("");
+  const [isTyping, setIsTyping] = useState<boolean>(false);
+
+  const getAIResponse = (userMessage: string): string => {
+    const lowerMessage = userMessage.toLowerCase();
+
+    // Simple keyword-based responses
+    if (lowerMessage.includes("cinema") || lowerMessage.includes("movie")) {
+      return "Here are some popular cinemas in Abuja:\n\n1. Silverbird Cinemas - Jabi Lake Mall\n2. FilmHouse Cinemas - Wuse 2\n3. Genesis Deluxe Cinemas - The Ceddi Plaza\n\nWould you like directions to any of these?";
+    } else if (lowerMessage.includes("home service")) {
+      return "Popular businesses offering home services in Abuja include:\n\n• Cleaning services\n• Plumbing & electrical\n• Home repairs\n• Laundry & dry cleaning\n\nWhich category interests you most?";
+    } else if (lowerMessage.includes("date") && lowerMessage.includes("idea")) {
+      return "Great date ideas in Abuja:\n\n1. Dinner at Zuma Grill\n2. Sunset at Jabi Lake\n3. Art gallery at Nike Art Gallery\n4. Live music at Nkoyo\n5. Picnic at Millennium Park\n\nAll these places have great ambiance!";
+    } else if (lowerMessage.includes("nice places") || lowerMessage.includes("visit")) {
+      return "Must-visit places in Abuja:\n\n🏛️ Aso Rock\n🕌 National Mosque\n⛪ National Church\n🌳 Millennium Park\n🛍️ Jabi Lake Mall\n🎨 Nike Art Gallery\n\nWould you like more details about any of these?";
+    } else if (lowerMessage.includes("restaurant") || lowerMessage.includes("food") || lowerMessage.includes("eat")) {
+      return "Top-rated restaurants in Abuja:\n\n🍽️ Nkoyo - Nigerian cuisine\n🍕 Domino's - Pizza & fast food\n🍱 Wakkis - Fine dining\n🌮 Johnny Rockets - American\n☕ The Charcoal Grill\n\nWhat type of cuisine are you in the mood for?";
+    } else {
+      return "I can help you discover amazing places in Abuja! Try asking about:\n\n• Restaurants and cafes\n• Entertainment venues\n• Shopping centers\n• Tourist attractions\n• Home services\n\nWhat would you like to explore?";
+    }
+  };
 
   const handleMessageSubmit = (message: string): void => {
     console.log("Message would be sent:", message);
@@ -97,6 +117,19 @@ const ExploreAI: React.FC = () => {
       ...prevMessages,
       { message: message, type: "sent" },
     ]);
+
+    // Show typing indicator
+    setIsTyping(true);
+
+    // Simulate AI response after a short delay
+    setTimeout(() => {
+      const responses = getAIResponse(message);
+      setMessages((prevMessages: Message[]) => [
+        ...prevMessages,
+        { message: responses, type: "received" },
+      ]);
+      setIsTyping(false);
+    }, 1500);
   };
 
   const handleFormSubmit = (): void => {
@@ -139,6 +172,7 @@ const ExploreAI: React.FC = () => {
                   p-4
                   rounded-[10px]
                   max-w-xs md:max-w-md
+                  whitespace-pre-line
                   ${
                     message.type === "sent"
                       ? "bg-bg-primary-dark2 text-white ml-auto"
@@ -149,6 +183,15 @@ const ExploreAI: React.FC = () => {
                 {message.message}
               </div>
             ))}
+            {isTyping && (
+              <div className="text-sm md:text-base m-2 p-4 rounded-[10px] max-w-xs md:max-w-md bg-white text-text-primary mr-auto shadow-sm">
+                <div className="flex gap-1">
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       ) : (

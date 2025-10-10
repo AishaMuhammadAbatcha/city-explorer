@@ -137,7 +137,8 @@ const EventDiscoveryApp: React.FC = () => {
     } else {
       handleCategoryChange("restaurants");
     }
-  }, [searchParams]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams.get('search')]);
 
   // Helper function to handle search with string parameter
   const handleSearch = async (query?: string): Promise<void> => {

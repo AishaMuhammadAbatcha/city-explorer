@@ -1,5 +1,21 @@
 # Deployment Guide
 
+## Quick Debug Tool 🔍
+
+**IMPORTANT:** After deployment, visit your site with `?debug=env` to check environment variables:
+```
+https://your-app.vercel.app/?debug=env
+```
+
+This will show a debug panel in the bottom-right corner displaying:
+- ✅ Which environment variables are set correctly
+- ❌ Which environment variables are missing
+- Current environment mode (production/development)
+
+If you see any red ✗ marks, those variables are not configured properly in Vercel.
+
+---
+
 ## Environment Variables
 
 Your application requires the following environment variables to function correctly in production:

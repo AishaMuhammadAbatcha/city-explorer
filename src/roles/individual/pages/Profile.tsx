@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Star,
   Camera,
@@ -10,10 +10,14 @@ import {
   Palette,
   Shield,
   LogOut,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router";
 import { useAuth } from "@/contexts/AuthContext";
+import { ReviewService } from "@/services/reviewService";
+import { FavoriteService } from "@/services/favoriteService";
+import { toast } from "sonner";
 
 interface MenuItem {
   id: string;
@@ -22,10 +26,46 @@ interface MenuItem {
   count?: number;
 }
 
+interface UserStats {
+  favoriteCount: number;
+  reviewCount: number;
+  photos: number;
+}
+
 const Profile: React.FC = () => {
   const [activeSection, setActiveSection] = useState<string>("favorites");
+  const [stats, setStats] = useState<UserStats>({ favoriteCount: 0, reviewCount: 0, photos: 0 });
+  const [loadingStats, setLoadingStats] = useState(true);
+  const [loggingOut, setLoggingOut] = useState(false);
   const navigate = useNavigate();
-  const { profile, user } = useAuth();
+  const { profile, user, signOut } = useAuth();
+
+  // Load user stats
+  useEffect(() => {
+    const loadStats = async () => {
+      if (!profile) return;
+
+      try {
+        setLoadingStats(true);
+        const [favoriteCount, userReviews] = await Promise.all([
+          FavoriteService.getUserFavoritesCount(),
+          ReviewService.getReviewsByUser(profile.id),
+        ]);
+
+        setStats({
+          favoriteCount,
+          reviewCount: userReviews?.length || 0,
+          photos: 0, // TODO: Implement photo count
+        });
+      } catch (error) {
+        console.error('Error loading stats:', error);
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+
+    loadStats();
+  }, [profile]);
 
   // Calculate profile completion percentage
   const calculateProfileCompletion = () => {
@@ -46,19 +86,20 @@ const Profile: React.FC = () => {
     phone: profile?.phone || "",
     address: profile?.address || "",
     city: profile?.city || "",
-    points: 97, // TODO: Implement points system
-    reviews: 797, // TODO: Get from reviews table
-    photos: 16, // TODO: Get from uploaded photos
+    points: stats.favoriteCount * 10 + stats.reviewCount * 5, // Simple points calculation
+    reviews: stats.reviewCount,
+    photos: stats.photos,
     profileCompletion: calculateProfileCompletion(),
   };
 
   const favoriteMenuItems: MenuItem[] = [
-    { id: "favorites", label: "Favorites", icon: <Star className="w-5 h-5" /> },
+    { id: "favorites", label: "Favorites", icon: <Star className="w-5 h-5" />, count: stats.favoriteCount },
     { id: "points", label: "My Points", icon: <Star className="w-5 h-5" /> },
     {
       id: "reviews",
       label: "Reviews",
       icon: <MessageCircle className="w-5 h-5" />,
+      count: stats.reviewCount,
     },
     { id: "photos", label: "Photos", icon: <Camera className="w-5 h-5" /> },
     {
@@ -104,23 +145,40 @@ const Profile: React.FC = () => {
   ];
 
   const handleSectionClick = (sectionId: string): void => {
-    setActiveSection(sectionId);
+    if (sectionId === "logout") {
+      handleLogout();
+    } else {
+      setActiveSection(sectionId);
+    }
+  };
+
+  const handleLogout = async (): Promise<void> => {
+    try {
+      setLoggingOut(true);
+      const { error } = await signOut();
+      if (error) {
+        toast.error("Failed to logout: " + error.message);
+      } else {
+        toast.success("Logged out successfully");
+        navigate("/login");
+      }
+    } catch (error) {
+      toast.error("An error occurred during logout");
+    } finally {
+      setLoggingOut(false);
+    }
   };
 
   const handleMyBusinessPage = (): void => {
-    console.log("Opening My Business Page...");
+    toast.info("Business page feature coming soon!");
   };
 
   const handlePlanMyDay = (): void => {
-    console.log("Opening Plan My Day...");
+    navigate("/ai");
   };
 
   const handleEditProfile = (): void => {
-    if (activeSection === "settings") {
-      navigate("/edit-profile");
-    } else {
-      setActiveSection("settings");
-    }
+    navigate("/edit-profile");
   };
 
   return (
@@ -129,7 +187,7 @@ const Profile: React.FC = () => {
       <div className="p-6 ">
         <div className="flex items-start space-x-4 bg-bg-primary border border-border-primary p-6 rounded-lg">
           {/* Profile Avatar */}
-          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center overflow-hidden">
+          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
             {profile?.avatar_url ? (
               <img
                 src={profile.avatar_url}
@@ -144,33 +202,42 @@ const Profile: React.FC = () => {
           </div>
 
           {/* Profile Info */}
-          <div className="flex-1">
-            <h1 className="text-2xl font-bold text-gray-900 mb-1">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-2xl font-bold text-gray-900 mb-1 truncate">
               {profileData.name}
             </h1>
             <p className="text-gray-600 mb-3">{profileData.bio}</p>
 
             {/* Stats */}
-            <div className="flex items-center space-x-6 text-sm text-gray-600 mb-4">
-              <span>
-                <strong className="text-gray-900">{profileData.points}</strong>{" "}
-                Points
-              </span>
-              <span>
-                <strong className="text-gray-900">{profileData.reviews}</strong>{" "}
-                Reviews
-              </span>
-              <span>
-                <strong className="text-gray-900">{profileData.photos}</strong>{" "}
-                Photos
-              </span>
+            <div className="flex items-center space-x-6 text-sm text-gray-600 mb-4 flex-wrap gap-2">
+              {loadingStats ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <>
+                  <span>
+                    <strong className="text-gray-900">{profileData.points}</strong>{" "}
+                    Points
+                  </span>
+                  <span>
+                    <strong className="text-gray-900">{profileData.reviews}</strong>{" "}
+                    Reviews
+                  </span>
+                  <span>
+                    <strong className="text-gray-900">{profileData.photos}</strong>{" "}
+                    Photos
+                  </span>
+                </>
+              )}
             </div>
 
             {/* Action Buttons */}
-            <div className="flex space-x-3 mb-4">
-              <Button onClick={handleMyBusinessPage}>My Business Page</Button>
-              <Button onClick={handlePlanMyDay} variant="outline">
+            <div className="flex space-x-3 mb-4 flex-wrap gap-2">
+              <Button onClick={handleMyBusinessPage} size="sm">My Business Page</Button>
+              <Button onClick={handlePlanMyDay} variant="outline" size="sm">
                 Plan My Day
+              </Button>
+              <Button onClick={handleEditProfile} variant="outline" size="sm">
+                Edit Profile
               </Button>
             </div>
 
@@ -207,7 +274,14 @@ const Profile: React.FC = () => {
               }`}
             >
               <div className="flex flex-col items-center space-y-2">
-                <div className="text-gray-600">{item.icon}</div>
+                <div className="text-gray-600 relative">
+                  {item.icon}
+                  {item.count !== undefined && item.count > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                      {item.count > 99 ? '99+' : item.count}
+                    </span>
+                  )}
+                </div>
                 <span className="text-sm font-medium text-gray-900">
                   {item.label}
                 </span>
@@ -227,20 +301,27 @@ const Profile: React.FC = () => {
               onClick={() => {
                 if (item.id === "settings") {
                   handleEditProfile();
+                } else if (item.id === "logout") {
+                  handleLogout();
                 } else {
                   handleSectionClick(item.id);
                 }
               }}
+              disabled={loggingOut && item.id === "logout"}
               className={`w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 bg-bg-primary border border-border-primary transition-colors duration-200 text-left ${
                 item.id === "logout" ? "hover:bg-red-50 hover:text-red-600" : ""
-              }`}
+              } ${loggingOut && item.id === "logout" ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               <div
                 className={`${
                   item.id === "logout" ? "text-red-500" : "text-gray-600"
                 }`}
               >
-                {item.icon}
+                {loggingOut && item.id === "logout" ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  item.icon
+                )}
               </div>
               <span
                 className={`font-medium ${

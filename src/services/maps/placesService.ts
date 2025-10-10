@@ -103,8 +103,12 @@ class GoogleMapsPlacesService {
       this.placesService!.nearbySearch(request, (results, status) => {
         if (status === google.maps.places.PlacesServiceStatus.OK && results) {
           resolve(results.map(place => this.formatPlace(place)))
+        } else if (status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
+          resolve([]) // No results is not an error
         } else {
-          reject(new Error(`Places search failed: ${status}`))
+          const errorMessage = this.getErrorMessage(status)
+          console.error(`Places search failed: ${status} - ${errorMessage}`)
+          reject(new Error(errorMessage))
         }
       })
     })
@@ -127,8 +131,12 @@ class GoogleMapsPlacesService {
       this.placesService!.textSearch(request, (results, status) => {
         if (status === google.maps.places.PlacesServiceStatus.OK && results) {
           resolve(results.map(place => this.formatPlace(place)))
+        } else if (status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
+          resolve([]) // No results is not an error
         } else {
-          reject(new Error(`Text search failed: ${status}`))
+          const errorMessage = this.getErrorMessage(status)
+          console.error(`Text search failed: ${status} - ${errorMessage}`)
+          reject(new Error(errorMessage))
         }
       })
     })
@@ -254,6 +262,24 @@ class GoogleMapsPlacesService {
       radius: 15000, // 15km radius for Abuja
       type: type
     })
+  }
+
+  // Helper method to get user-friendly error messages
+  private getErrorMessage(status: google.maps.places.PlacesServiceStatus): string {
+    switch (status) {
+      case google.maps.places.PlacesServiceStatus.REQUEST_DENIED:
+        return 'Google Maps API request was denied. Please check your API key restrictions and ensure the Places API is enabled in Google Cloud Console.'
+      case google.maps.places.PlacesServiceStatus.OVER_QUERY_LIMIT:
+        return 'Google Maps API quota exceeded. Please check your billing settings in Google Cloud Console or wait for the quota to reset.'
+      case google.maps.places.PlacesServiceStatus.INVALID_REQUEST:
+        return 'Invalid search request. Please try different search criteria.'
+      case google.maps.places.PlacesServiceStatus.UNKNOWN_ERROR:
+        return 'An unknown error occurred with Google Maps. Please try again later.'
+      case google.maps.places.PlacesServiceStatus.NOT_FOUND:
+        return 'Place not found.'
+      default:
+        return `Google Maps error: ${status}`
+    }
   }
 }
 

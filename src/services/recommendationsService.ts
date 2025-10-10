@@ -416,7 +416,8 @@ class RecommendationsService {
   }
 
   private async enrichWithGooglePlaces(
-    trendingScores: Map<string, { score: number; businessId: string }>
+    trendingScores: Map<string, { score: number; businessId: string }>,
+    location?: { lat: number; lng: number }
   ): Promise<RecommendationScore[]> {
     const recommendations: RecommendationScore[] = []
 
@@ -430,15 +431,51 @@ class RecommendationsService {
           .single()
 
         if (business) {
+          // Try to get Google Place data if google_place_id exists
+          let googlePlace: GooglePlace | undefined
+          if (business.google_place_id) {
+            try {
+              const placeData = await placesService.getPlaceDetails(business.google_place_id)
+              if (placeData) {
+                googlePlace = placeData
+              }
+            } catch (error) {
+              console.error('Error fetching Google Place details:', error)
+            }
+          }
+
           recommendations.push({
             placeId: businessId,
             score,
             reasons: ['Trending in your area', 'Popular recently'],
-            business
+            business,
+            place: googlePlace
           })
         }
       } catch (error) {
         console.error('Error enriching with business data:', error)
+      }
+    }
+
+    // If we have fewer than 5 recommendations, add some from Google Places
+    if (recommendations.length < 5 && location) {
+      try {
+        const additionalPlaces = await placesService.searchNearbyPlaces({
+          location,
+          radius: 5000,
+          type: 'restaurant'
+        })
+
+        const additionalRecs = additionalPlaces.slice(0, 5 - recommendations.length).map(place => ({
+          placeId: place.place_id,
+          score: place.rating ? (place.rating / 5) * 80 : 40,
+          reasons: ['Popular in your area', place.rating ? 'Highly rated' : 'Worth checking out'],
+          place
+        }))
+
+        recommendations.push(...additionalRecs)
+      } catch (error) {
+        console.error('Error adding additional Google Places:', error)
       }
     }
 
