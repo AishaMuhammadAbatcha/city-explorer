@@ -26,12 +26,16 @@ export function useRecommendations(
   const [recommendations, setRecommendations] = useState<RecommendationScore[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [hasFetched, setHasFetched] = useState(false)
+
+  // Serialize options to prevent infinite loops
+  const optionsRef = useCallback(() => initialOptions, [JSON.stringify(initialOptions)])
 
   const getRecommendations = useCallback(
     async (options: UseRecommendationsOptions = {}) => {
       if (!user) return
 
-      const finalOptions = { ...initialOptions, ...options }
+      const finalOptions = { ...optionsRef(), ...options }
       setLoading(true)
       setError(null)
 
@@ -86,19 +90,20 @@ export function useRecommendations(
         setLoading(false)
       }
     },
-    [user, initialOptions]
+    [user, optionsRef]
   )
 
   const refresh = useCallback(() => {
-    return getRecommendations(initialOptions)
-  }, [getRecommendations, initialOptions])
+    return getRecommendations(optionsRef())
+  }, [getRecommendations, optionsRef])
 
-  // Auto-fetch on mount if enabled
+  // Auto-fetch on mount if enabled - only once
   useEffect(() => {
-    if (initialOptions.autoFetch !== false && user) {
-      getRecommendations(initialOptions)
+    if (optionsRef().autoFetch !== false && user && !hasFetched) {
+      setHasFetched(true)
+      getRecommendations(optionsRef())
     }
-  }, [user, getRecommendations, initialOptions])
+  }, [user, getRecommendations, optionsRef, hasFetched])
 
   return {
     recommendations,
@@ -184,6 +189,7 @@ export function useLocationForRecommendations() {
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [hasFetched, setHasFetched] = useState(false)
 
   const getCurrentLocation = useCallback(async () => {
     setLoading(true)
@@ -221,9 +227,13 @@ export function useLocationForRecommendations() {
     }
   }, [])
 
+  // Only fetch once on mount
   useEffect(() => {
-    getCurrentLocation()
-  }, [getCurrentLocation])
+    if (!hasFetched) {
+      setHasFetched(true)
+      getCurrentLocation()
+    }
+  }, [hasFetched, getCurrentLocation])
 
   return {
     location,

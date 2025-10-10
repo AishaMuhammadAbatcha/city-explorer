@@ -15,6 +15,7 @@ const Maps: React.FC = () => {
   const [center, setCenter] = useState<Location>(DEFAULT_CENTER);
   const [nearbyPlaces, setNearbyPlaces] = useState<GooglePlace[]>([]);
   const [loading, setLoading] = useState(false);
+  const [hasLoadedInitial, setHasLoadedInitial] = useState(false);
 
   // Load nearby restaurants when component mounts or center changes
   useEffect(() => {
@@ -24,15 +25,20 @@ const Maps: React.FC = () => {
         const results = await placesService.getPlacesByCategory("restaurants", center);
         // Get first 10 places to avoid cluttering the map
         setNearbyPlaces(results.slice(0, 10));
+        setHasLoadedInitial(true);
       } catch (error) {
         console.error("Error loading nearby places:", error);
+        setHasLoadedInitial(true);
       } finally {
         setLoading(false);
       }
     };
 
-    loadNearbyPlaces();
-  }, [center.lat, center.lng]);
+    // Only load on mount, or when center changes significantly (user selected new origin)
+    if (!hasLoadedInitial || origin) {
+      loadNearbyPlaces();
+    }
+  }, [center.lat, center.lng, hasLoadedInitial, origin]);
 
   return (
     <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string}>
