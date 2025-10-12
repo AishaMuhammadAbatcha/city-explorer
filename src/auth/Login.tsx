@@ -9,6 +9,7 @@ import { useNavigate, Link } from "react-router";
 import { toast } from "sonner";
 import { Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -18,23 +19,23 @@ const Login = () => {
     formState: { errors, isSubmitting },
   } = useForm<LoginSchema>({ resolver: zodResolver(loginSchema) });
   const navigate = useNavigate();
+  const { signIn } = useAuth();
 
   const onSubmit: SubmitHandler<LoginSchema> = async (data) => {
     try {
-      console.log("Login data: ", data);
+      const { user, error } = await signIn(data.username, data.password);
 
-      // Simulate login process
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      navigate("/dashboard");
-      toast.success("Login successful! Welcome back!");
-
-    } catch (error: any) {
-      if (error.status === 401 || error.status === 404) {
-        toast.error(error.data?.message || "Invalid credentials");
-      } else {
-        toast.error("Something went wrong. Please try again.");
+      if (error) {
+        toast.error(error.message || "Invalid credentials");
+        return;
       }
+
+      if (user) {
+        toast.success("Login successful! Welcome back!");
+        // Navigation will be handled by the Router's useEffect
+      }
+    } catch (error: any) {
+      toast.error("Something went wrong. Please try again.");
     }
   };
 
