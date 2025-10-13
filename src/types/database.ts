@@ -169,6 +169,9 @@ export interface Database {
           business_id: string
           rating: number
           comment: string | null
+          business_response: string | null
+          business_response_date: string | null
+          business_response_by: string | null
           created_at: string
           updated_at: string
         }
@@ -178,6 +181,9 @@ export interface Database {
           business_id: string
           rating: number
           comment?: string | null
+          business_response?: string | null
+          business_response_date?: string | null
+          business_response_by?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -187,6 +193,9 @@ export interface Database {
           business_id?: string
           rating?: number
           comment?: string | null
+          business_response?: string | null
+          business_response_date?: string | null
+          business_response_by?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -266,6 +275,62 @@ export interface Database {
           read?: boolean
           created_at?: string
           expires_at?: string | null
+          updated_at?: string
+        }
+      }
+      deals: {
+        Row: {
+          id: string
+          business_id: string
+          title: string
+          description: string | null
+          discount: string
+          discount_percentage: number | null
+          valid_from: string
+          valid_until: string
+          terms_and_conditions: string | null
+          max_redemptions: number | null
+          current_redemptions: number
+          status: 'active' | 'expired' | 'paused' | 'draft'
+          image_url: string | null
+          category: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          business_id: string
+          title: string
+          description?: string | null
+          discount: string
+          discount_percentage?: number | null
+          valid_from?: string
+          valid_until: string
+          terms_and_conditions?: string | null
+          max_redemptions?: number | null
+          current_redemptions?: number
+          status?: 'active' | 'expired' | 'paused' | 'draft'
+          image_url?: string | null
+          category?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          business_id?: string
+          title?: string
+          description?: string | null
+          discount?: string
+          discount_percentage?: number | null
+          valid_from?: string
+          valid_until?: string
+          terms_and_conditions?: string | null
+          max_redemptions?: number | null
+          current_redemptions?: number
+          status?: 'active' | 'expired' | 'paused' | 'draft'
+          image_url?: string | null
+          category?: string | null
+          created_at?: string
           updated_at?: string
         }
       }

@@ -34,8 +34,8 @@ export class GeminiService {
         return this.getMockResponse(userMessage);
       }
 
-      // Use the free tier model: gemini-1.5-flash
-      const model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+      // Use the latest free tier model: gemini-2.0-flash-exp
+      const model = this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
 
       // Create a context-aware prompt for city exploration
       const systemPrompt = `You are a helpful AI assistant for City Explorer, an app that helps people discover amazing places, businesses, events, and activities in Nigerian cities, especially Abuja.
@@ -119,7 +119,7 @@ Be friendly, concise, and helpful. Format your responses with bullet points or n
         return;
       }
 
-      const model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+      const model = this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
 
       const systemPrompt = `You are a helpful AI assistant for City Explorer, an app that helps people discover amazing places in Nigerian cities. Be concise and helpful.`;
 
