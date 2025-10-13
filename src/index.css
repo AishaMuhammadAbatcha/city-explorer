@@ -216,8 +216,11 @@
   html {
     /* Prevent horizontal scroll on mobile */
     overflow-x: hidden;
+    width: 100%;
     /* Smooth scrolling */
     scroll-behavior: smooth;
+    /* Fix viewport height on mobile browsers */
+    height: -webkit-fill-available;
   }
 
   body {
@@ -227,8 +230,23 @@
     -moz-osx-font-smoothing: grayscale;
     /* Prevent horizontal scroll */
     overflow-x: hidden;
+    width: 100%;
+    max-width: 100vw;
     /* Improve touch scrolling on iOS */
     -webkit-overflow-scrolling: touch;
+    /* Fix viewport height on mobile browsers */
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+  }
+
+  /* Prevent any element from causing horizontal scroll */
+  * {
+    max-width: 100%;
+  }
+
+  /* Allow specific elements to exceed if needed */
+  svg, img {
+    max-width: none;
   }
 
   /* Fix for iOS Safari viewport units */
@@ -265,10 +283,25 @@
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
+    overflow-x: auto;
   }
 
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
+  }
+
+  /* Snap scroll for horizontal lists */
+  .snap-x {
+    scroll-snap-type: x mandatory;
+    scroll-padding: 1rem;
+  }
+
+  .snap-start {
+    scroll-snap-align: start;
+  }
+
+  .snap-center {
+    scroll-snap-align: center;
   }
 
   /* Touch-friendly focus styles */

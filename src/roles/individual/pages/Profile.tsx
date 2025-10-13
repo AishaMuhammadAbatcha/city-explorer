@@ -17,6 +17,7 @@ import { useNavigate } from "react-router";
 import { useAuth } from "@/contexts/AuthContext";
 import { ReviewService } from "@/services/reviewService";
 import { FavoriteService } from "@/services/favoriteService";
+import { BusinessService, type Business } from "@/services/businessService";
 import { toast } from "sonner";
 
 interface MenuItem {
@@ -37,6 +38,7 @@ const Profile: React.FC = () => {
   const [stats, setStats] = useState<UserStats>({ favoriteCount: 0, reviewCount: 0, photos: 0 });
   const [loadingStats, setLoadingStats] = useState(true);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [loadingBusiness, setLoadingBusiness] = useState(false);
   const navigate = useNavigate();
   const { profile, user, signOut } = useAuth();
 
@@ -169,8 +171,30 @@ const Profile: React.FC = () => {
     }
   };
 
-  const handleMyBusinessPage = (): void => {
-    toast.info("Business page feature coming soon!");
+  const handleMyBusinessPage = async (): Promise<void> => {
+    if (!profile?.id) {
+      toast.error("Please log in to view your business page");
+      return;
+    }
+
+    try {
+      setLoadingBusiness(true);
+      const businesses: Business[] = await BusinessService.getBusinessesByOwner(profile.id);
+      
+      if (businesses && businesses.length > 0) {
+        // Navigate to the first business (most recent one)
+        navigate(`/business/${businesses[0].id}`);
+      } else {
+        toast.info("You don't have a business yet. Create one to get started!", {
+          description: "Switch to business mode to create your business profile"
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching business:", error);
+      toast.error("Failed to load your business page");
+    } finally {
+      setLoadingBusiness(false);
+    }
   };
 
   const handlePlanMyDay = (): void => {
@@ -232,8 +256,20 @@ const Profile: React.FC = () => {
 
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 mb-4">
-              <Button onClick={handleMyBusinessPage} size="sm" className="w-full sm:w-auto text-xs sm:text-sm">
-                My Business Page
+              <Button 
+                onClick={handleMyBusinessPage} 
+                size="sm" 
+                className="w-full sm:w-auto text-xs sm:text-sm"
+                disabled={loadingBusiness}
+              >
+                {loadingBusiness ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  "My Business Page"
+                )}
               </Button>
               <Button onClick={handlePlanMyDay} variant="outline" size="sm" className="w-full sm:w-auto text-xs sm:text-sm">
                 Plan My Day

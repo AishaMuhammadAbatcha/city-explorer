@@ -190,10 +190,10 @@ const Dashboard = () => {
 
   return (
     <ResponsiveContainer size="full" padding="md">
-      <div className="space-y-4 sm:space-y-6">
+      <div className="space-y-4 sm:space-y-6 max-w-7xl mx-auto">
         {/* Welcome Header */}
-        <div className="space-y-2">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+        <div className="space-y-2 px-1">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight">
             Good {currentContext === 'morning' ? 'morning' : currentContext === 'afternoon' ? 'afternoon' : 'evening'}, {profile?.full_name || 'Explorer'}
           </h1>
           <p className="text-sm sm:text-base text-muted-foreground">
@@ -202,55 +202,52 @@ const Dashboard = () => {
         </div>
 
         {/* Stats Cards */}
-        <ResponsiveGrid
-          cols={{ mobile: 2, tablet: 2, desktop: 4 }}
-          gap="sm"
-        >
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
           {dashboardStats.map((stat) => {
             const Icon = stat.icon;
             return (
-              <Card key={stat.title} className="p-3 sm:p-4">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-0">
-                  <CardTitle className="text-xs sm:text-sm font-medium truncate">
+              <Card key={stat.title} className="overflow-hidden">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 sm:p-4">
+                  <CardTitle className="text-xs sm:text-sm font-medium truncate pr-2">
                     {stat.title}
                   </CardTitle>
-                  <Icon className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+                  <Icon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                 </CardHeader>
-                <CardContent className="p-0 pt-2">
-                  <div className="text-lg sm:text-2xl font-bold">{stat.value}</div>
-                  <p className="text-xs text-muted-foreground">
+                <CardContent className="p-3 sm:p-4 pt-0">
+                  <div className="text-xl sm:text-2xl font-bold">{stat.value}</div>
+                  <p className="text-xs text-muted-foreground mt-1">
                     <span className="text-emerald-600">{stat.change}</span> this month
                   </p>
                 </CardContent>
               </Card>
             );
           })}
-        </ResponsiveGrid>
+        </div>
 
         {/* Hero Search Section */}
-        <Card>
-          <CardContent className="p-4 sm:p-6">
-            <div className="bg-gradient-to-r from-primary to-primary/80 rounded-lg p-4 sm:p-6 text-primary-foreground">
-              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <Card className="overflow-hidden">
+          <CardContent className="p-0">
+            <div className="bg-gradient-to-r from-primary to-primary/80 p-4 sm:p-6 lg:p-8 text-primary-foreground">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 lg:gap-6">
                 <div className="flex-1 space-y-3 sm:space-y-4">
-                  <h2 className="text-lg sm:text-2xl lg:text-3xl font-bold leading-tight">
+                  <h2 className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-bold leading-tight">
                     Discover amazing places and events in your city
                   </h2>
 
-                  <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                     <div className="relative flex-1">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                       <Input
                         placeholder={isMobile ? "Search places..." : "Search for restaurants, events, services..."}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                        className="pl-10 bg-background text-foreground text-base" // 16px to prevent zoom on iOS
+                        className="pl-10 bg-background text-foreground text-base h-11 sm:h-12"
                       />
                     </div>
                     <TouchOptimizedButton
                       onClick={handleSearch}
-                      className="bg-white text-primary hover:bg-gray-50"
+                      className="bg-white text-primary hover:bg-gray-50 h-11 sm:h-12 px-6"
                       fullWidth={isMobile}
                     >
                       Search
@@ -258,15 +255,11 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-                {!isMobile && (
-                  <div className="hidden lg:block ml-8">
-                    <div className="w-24 h-24 lg:w-32 lg:h-32 relative">
-                      <div className="w-full h-full bg-background/10 rounded-full flex items-center justify-center">
-                        <Pizza className="w-12 h-12 lg:w-16 lg:h-16" />
-                      </div>
-                    </div>
+                <div className="hidden lg:flex items-center justify-center lg:ml-6 xl:ml-8">
+                  <div className="w-24 h-24 xl:w-32 xl:h-32 bg-background/10 rounded-full flex items-center justify-center flex-shrink-0">
+                    <Pizza className="w-12 h-12 xl:w-16 xl:h-16" />
                   </div>
-                )}
+                </div>
               </div>
             </div>
           </CardContent>
@@ -300,19 +293,19 @@ const Dashboard = () => {
       </div>
 
         {/* Category Filters */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg sm:text-xl">Explore Categories</CardTitle>
-            <CardDescription className="text-sm">Find what you're looking for</CardDescription>
+        <Card className="overflow-hidden">
+          <CardHeader className="pb-3 px-4 sm:px-6">
+            <CardTitle className="text-base sm:text-lg lg:text-xl">Explore Categories</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">Find what you're looking for</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+          <CardContent className="px-4 sm:px-6">
+            <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide snap-x snap-mandatory">
               {categories.map((category) => (
                 <TouchOptimizedButton
                   key={category.name}
                   variant={activeCategory === category.name ? "primary" : "ghost"}
                   onClick={() => setActiveCategory(category.name)}
-                  className="whitespace-nowrap flex-shrink-0 text-sm"
+                  className="whitespace-nowrap flex-shrink-0 text-xs sm:text-sm snap-start"
                   size="sm"
                 >
                   {category.name}
@@ -323,40 +316,43 @@ const Dashboard = () => {
         </Card>
 
         {/* Featured Businesses */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg sm:text-xl">Featured Businesses</CardTitle>
-            <CardDescription className="text-sm">Popular places in your area</CardDescription>
+        <Card className="overflow-hidden">
+          <CardHeader className="pb-3 px-4 sm:px-6">
+            <CardTitle className="text-base sm:text-lg lg:text-xl">Featured Businesses</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">Popular places in your area</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-4 sm:px-6">
             {loading ? (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                <p className="text-muted-foreground mt-2 text-sm">Loading businesses...</p>
+              <div className="text-center py-8 sm:py-12">
+                <div className="animate-spin rounded-full h-8 w-8 sm:h-10 sm:w-10 border-b-2 border-primary mx-auto"></div>
+                <p className="text-muted-foreground mt-3 text-xs sm:text-sm">Loading businesses...</p>
+              </div>
+            ) : filteredBusinesses.length === 0 ? (
+              <div className="text-center py-8 sm:py-12">
+                <p className="text-muted-foreground text-sm">No businesses found in this category</p>
               </div>
             ) : (
-              <ResponsiveGrid
-                cols={{ mobile: 1, tablet: 1, desktop: 2 }}
-                gap="sm"
-              >
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
                 {filteredBusinesses.map((business) => (
                   <Card
                     key={business.id}
-                    className="cursor-pointer hover:shadow-md transition-shadow active:scale-95 transform transition-transform"
+                    className="cursor-pointer hover:shadow-lg transition-all duration-200 active:scale-[0.98] transform border border-border"
                     onClick={() => navigate(`/business/${business.id}`)}
                   >
                     <CardContent className="p-3 sm:p-4">
                       <div className="flex items-start gap-3 sm:gap-4">
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
-                          <Store className="w-5 h-5 sm:w-6 sm:h-6 text-primary-foreground" />
+                        <div className="w-12 h-12 sm:w-14 sm:h-14 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
+                          <Store className="w-6 h-6 sm:w-7 sm:h-7 text-primary-foreground" />
                         </div>
                         <div className="flex-1 space-y-2 min-w-0">
                           <div className="flex items-start justify-between gap-2">
-                            <h4 className="font-semibold text-sm sm:text-base line-clamp-1">{business.name}</h4>
+                            <h4 className="font-semibold text-sm sm:text-base leading-tight line-clamp-1">{business.name}</h4>
                             <div className="flex items-center gap-1 flex-shrink-0">
-                              <Badge variant="secondary" className="text-xs">{business.category}</Badge>
+                              <Badge variant="secondary" className="text-[10px] sm:text-xs px-1.5 sm:px-2">
+                                {business.category}
+                              </Badge>
                               {business.verified && (
-                                <Badge variant="default" className="text-xs">
+                                <Badge variant="default" className="text-[10px] sm:text-xs px-1.5 sm:px-2">
                                   ✓
                                 </Badge>
                               )}
@@ -365,15 +361,15 @@ const Dashboard = () => {
                           <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed line-clamp-2">
                             {business.description || "Discover what this business has to offer"}
                           </p>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center text-xs sm:text-sm text-muted-foreground">
+                          <div className="flex items-center justify-between gap-2 pt-1">
+                            <div className="flex items-center text-xs sm:text-sm text-muted-foreground min-w-0 flex-1">
                               <MapPin className="w-3 h-3 sm:w-4 sm:h-4 mr-1 flex-shrink-0" />
                               <span className="truncate">{business.city}</span>
                             </div>
                             {business.rating > 0 && (
-                              <div className="flex items-center text-xs sm:text-sm flex-shrink-0">
-                                <Star className="w-3 h-3 sm:w-4 sm:h-4 mr-1 fill-yellow-400 text-yellow-400" />
-                                <span>{business.rating.toFixed(1)}</span>
+                              <div className="flex items-center text-xs sm:text-sm flex-shrink-0 ml-2">
+                                <Star className="w-3 h-3 sm:w-4 sm:h-4 mr-0.5 fill-yellow-400 text-yellow-400" />
+                                <span className="font-medium">{business.rating.toFixed(1)}</span>
                                 <span className="text-muted-foreground ml-1">
                                   ({business.total_reviews})
                                 </span>
@@ -385,7 +381,7 @@ const Dashboard = () => {
                     </CardContent>
                   </Card>
                 ))}
-              </ResponsiveGrid>
+              </div>
             )}
           </CardContent>
         </Card>

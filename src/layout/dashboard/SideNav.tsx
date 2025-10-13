@@ -28,12 +28,14 @@ type Props = {
 };
 
 function SideNav({ drawerWidth, handleDrawerToggle, mobileOpen }: Props) {
-  const { signOut } = useAuth();
+  const { signOut, profile } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [isLoading, setIsLoading] = useState(false);
   const sideNavRef = useRef<HTMLDivElement>(null);
-  const userRole: "admin" | "individual" | "organization" = "individual"; // Temporary user role assignment for development purposes
+  // Get user role from profile, default to individual if not set
+  const userRole: "admin" | "individual" | "organization" = 
+    profile?.role === 'business' ? 'organization' : 'individual';
 
   // Handle click outside to close mobile drawer
   useEffect(() => {
@@ -104,37 +106,37 @@ function SideNav({ drawerWidth, handleDrawerToggle, mobileOpen }: Props) {
   const organizationNavItems = [
     {
       text: "Dashboard",
-      link: "/dashboard",
+      link: "/business/dashboard",
       icon: Home,
     },
     {
       text: "Events",
-      link: "/events",
+      link: "/business/events",
       icon: Calendar,
     },
     {
       text: "Deals",
-      link: "/deals",
+      link: "/business/deals",
       icon: Tag,
     },
     {
       text: "Reviews",
-      link: "/reviews",
+      link: "/business/reviews",
       icon: Star,
     },
     {
       text: "Analytics",
-      link: "/analytics",
+      link: "/business/analytics",
       icon: BarChart3,
     },
     {
       text: "Notifications",
-      link: "/notifications",
+      link: "/business/notifications",
       icon: Bell,
     },
     {
       text: "Settings",
-      link: "/settings",
+      link: "/business/settings",
       icon: Settings,
     },
   ];
