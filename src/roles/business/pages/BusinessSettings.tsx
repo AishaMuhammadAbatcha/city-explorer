@@ -1,36 +1,66 @@
 import { Button } from "@/components/ui/button";
-// import { useLoginMutation } from "@/app/authApiSlice";
-// import { useDispatch } from "react-redux";
 import { useToast } from "@/context/ToastContext";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { settingsSchema, type SettingsSchema } from "./schema";
-// import { login } from "./authSlice";
 import CustomTextField from "@/components/inputs/CustomTextField";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/lib/supabase";
+import { useEffect } from "react";
 
 const BusinessSettings = () => {
+  const { user, profile, updateProfile } = useAuth();
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<SettingsSchema>({ resolver: zodResolver(settingsSchema) });
   const { showToast } = useToast();
 
-  // const dispatch = useDispatch();
-
-  // const [loginRequest] = useLoginMutation();
+  // Load current profile data
+  useEffect(() => {
+    if (profile) {
+      setValue("business_name", profile.full_name || "");
+      setValue("username", profile.email || "");
+      setValue("phone", profile.phone || "");
+    }
+  }, [profile, setValue]);
 
   const onSubmit: SubmitHandler<SettingsSchema> = async (data) => {
     try {
-      // const userData = await loginRequest(data).unwrap();
-      // dispatch(login(userData));
-      console.log("Profile data:", data);
+      if (!user) {
+        showToast("You must be logged in to update settings", "error");
+        return;
+      }
+
+      // Update profile
+      const updates: any = {};
+      if (data.business_name) updates.full_name = data.business_name;
+      if (data.phone) updates.phone = data.phone;
+
+      // Update profile in database
+      if (Object.keys(updates).length > 0) {
+        const { error: profileError } = await updateProfile(updates);
+        if (profileError) {
+          throw profileError;
+        }
+      }
+
+      // Update password if provided
+      if (data.new_password) {
+        const { error: passwordError } = await supabase.auth.updateUser({
+          password: data.new_password
+        });
+        if (passwordError) {
+          throw passwordError;
+        }
+      }
+
       showToast("Profile updated successfully", "success");
-      // navigate("/lesson-plans");
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       console.error("Error updating profile:", error);
-      showToast("Something went wrong", "error");
+      showToast(error.message || "Something went wrong", "error");
     }
   };
 
