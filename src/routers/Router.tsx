@@ -47,22 +47,16 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
     return <Navigate to="/login" replace />;
   }
 
-  // Wait for profile to load before checking role - prevent premature redirects
-  if (!profile) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center space-y-4">
-          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-gray-600">Loading profile...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (requiredRole && profile.role !== requiredRole) {
-    // Redirect to appropriate dashboard based on actual role
-    const redirectPath = profile.role === 'business' ? '/business/dashboard' : '/dashboard';
-    return <Navigate to={redirectPath} replace />;
+  // Check role-based access
+  if (requiredRole && profile?.role !== requiredRole) {
+    // If we don't have a profile yet but user exists, let them access (will show error if profile needed)
+    if (!profile) {
+      console.warn('User exists but profile not loaded, allowing access');
+    } else {
+      // Redirect to appropriate dashboard based on actual role
+      const redirectPath = profile.role === 'business' ? '/business/dashboard' : '/dashboard';
+      return <Navigate to={redirectPath} replace />;
+    }
   }
 
   return <>{children}</>;

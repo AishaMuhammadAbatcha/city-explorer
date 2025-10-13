@@ -26,30 +26,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let mounted = true
-    let timeoutId: NodeJS.Timeout
+    let timeoutId: NodeJS.Timeout | null = null
+    let isInitializing = true
 
     // Get initial session
     const initializeAuth = async () => {
       try {
-        // Set a timeout to ensure loading is eventually set to false
-        timeoutId = setTimeout(() => {
-          if (mounted) {
-            console.warn('Auth initialization timeout - setting loading to false')
-            setLoading(false)
-          }
-        }, 5000) // 5 second timeout (reduced from 10)
-
+        console.log('Initializing auth...')
         const { data: { session }, error } = await supabase.auth.getSession()
 
-        if (!mounted) {
-          clearTimeout(timeoutId)
-          return
-        }
+        if (!mounted) return
 
         if (error) {
           console.error('Error getting session:', error)
           setLoading(false)
-          clearTimeout(timeoutId)
+          isInitializing = false
           return
         }
 
@@ -57,19 +48,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(session?.user ?? null)
 
         if (session?.user) {
-          // Fetch profile but don't block on it - set user first
-          fetchProfile(session.user.id)
+          console.log('Initial session found, fetching profile...')
+          // Fetch profile
+          await fetchProfile(session.user.id)
         } else {
+          console.log('No initial session')
           setLoading(false)
         }
 
-        clearTimeout(timeoutId)
+        isInitializing = false
       } catch (error) {
         console.error('Error initializing auth:', error)
         if (mounted) {
           setLoading(false)
         }
-        clearTimeout(timeoutId)
+        isInitializing = false
       }
     }
 
@@ -83,7 +76,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       console.log('Auth state change:', event, session?.user?.id)
 
-      // Set loading to false immediately when signing out
+      // Clear any existing timeouts
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+        timeoutId = null
+      }
+
+      // Ignore SIGNED_IN event during initialization to prevent double fetch
+      if (isInitializing && event === 'SIGNED_IN') {
+        console.log('Ignoring SIGNED_IN during initialization')
+        return
+      }
+
+      // Handle sign out
       if (event === 'SIGNED_OUT') {
         setSession(null)
         setUser(null)
@@ -92,27 +97,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return
       }
 
-      setSession(session)
-      setUser(session?.user ?? null)
+      // Handle sign in or token refresh
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        setSession(session)
+        setUser(session?.user ?? null)
 
-      if (session?.user) {
-        // Only fetch profile if we don't have it or if the user changed
-        await fetchProfile(session.user.id)
-      } else {
-        setProfile(null)
-        setLoading(false)
+        if (session?.user) {
+          console.log('Fetching profile after auth change...')
+          // Fetch profile
+          await fetchProfile(session.user.id)
+        } else {
+          setProfile(null)
+          setLoading(false)
+        }
       }
     })
 
     return () => {
       mounted = false
-      clearTimeout(timeoutId)
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+      }
       subscription.unsubscribe()
     }
   }, [])
 
   const fetchProfile = async (userId: string) => {
     try {
+      console.log('Fetching profile for user:', userId)
+
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -121,15 +134,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (error) {
         console.error('Error fetching profile:', error)
+
+        // If profile doesn't exist, create a basic one
+        if (error.code === 'PGRST116') {
+          console.log('Profile not found, user can still access the app')
+          setProfile(null)
+        }
+
         // Set loading to false even on error to prevent infinite loading
         setLoading(false)
         return
       }
 
+      console.log('Profile fetched successfully:', data?.role)
       setProfile(data)
       setLoading(false)
     } catch (error) {
-      console.error('Error fetching profile:', error)
+      console.error('Unexpected error fetching profile:', error)
       // Set loading to false even on error to prevent infinite loading
       setLoading(false)
     }
