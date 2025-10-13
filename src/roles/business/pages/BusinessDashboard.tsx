@@ -6,29 +6,31 @@ const BusinessDashboard = () => {
   const navigate = useNavigate();
 
   return (
-    <div>
-      <div className="bg-white border-1 border-border-primary rounded-md w-full p-6 flex items-center gap-3">
-        <div className="rounded-full border border-border-primary h-20 w-20 overflow-hidden">
+    <div className="space-y-4 sm:space-y-6 p-4 sm:p-6">
+      <div className="bg-white border-1 border-border-primary rounded-md w-full p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+        <div className="rounded-full border border-border-primary h-16 w-16 sm:h-20 sm:w-20 overflow-hidden flex-shrink-0">
           <img
             src={profileImg}
             alt="Business profile"
             className="w-full h-full object-cover"
           />
         </div>
-        <div>
-          <h3 className="font-bold">Beauty Bliss</h3>
-          <p className="text-base">Top-rated spa and salon</p>
+        <div className="flex-1">
+          <h3 className="font-bold text-lg sm:text-xl">Beauty Bliss</h3>
+          <p className="text-sm sm:text-base text-muted-foreground">Top-rated spa and salon</p>
         </div>
       </div>
-      <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         {dashboardCard.map((item) => (
           <div
-            className="bg-white border-1 border-border-primary rounded-md w-full p-6 flex flex-col gap-8"
+            className="bg-white border-1 border-border-primary rounded-md w-full p-4 sm:p-6 flex flex-col gap-4 sm:gap-6"
             key={item.id}
           >
-            <h4 className="font-bold">{item.header}</h4>
-            <p className="text-base">{item.text}</p>
-            <Button onClick={() => navigate(item.navigateTo)}>Add New</Button>
+            <h4 className="font-bold text-base sm:text-lg">{item.header}</h4>
+            <p className="text-sm sm:text-base text-muted-foreground">{item.text}</p>
+            <Button onClick={() => navigate(item.navigateTo)} className="w-full sm:w-auto">
+              Add New
+            </Button>
           </div>
         ))}
       </div>

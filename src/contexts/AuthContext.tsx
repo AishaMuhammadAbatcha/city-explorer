@@ -83,10 +83,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       console.log('Auth state change:', event, session?.user?.id)
 
+      // Set loading to false immediately when signing out
+      if (event === 'SIGNED_OUT') {
+        setSession(null)
+        setUser(null)
+        setProfile(null)
+        setLoading(false)
+        return
+      }
+
       setSession(session)
       setUser(session?.user ?? null)
 
       if (session?.user) {
+        // Only fetch profile if we don't have it or if the user changed
         await fetchProfile(session.user.id)
       } else {
         setProfile(null)
@@ -145,12 +155,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    })
+    try {
+      setLoading(true)
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      })
 
-    return { user: data.user, error }
+      if (error) {
+        setLoading(false)
+        return { user: null, error }
+      }
+
+      // The onAuthStateChange listener will handle setting the user and profile
+      // and will set loading to false after fetching the profile
+      return { user: data.user, error: null }
+    } catch (error) {
+      setLoading(false)
+      return { user: null, error: error as AuthError }
+    }
   }
 
   const signOut = async () => {

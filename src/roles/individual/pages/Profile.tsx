@@ -184,10 +184,10 @@ const Profile: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Profile Header */}
-      <div className="p-6 ">
-        <div className="flex items-start space-x-4 bg-bg-primary border border-border-primary p-6 rounded-lg">
+      <div className="p-3 sm:p-4 md:p-6">
+        <div className="flex flex-col sm:flex-row items-start space-y-4 sm:space-y-0 sm:space-x-4 bg-bg-primary border border-border-primary p-4 sm:p-6 rounded-lg">
           {/* Profile Avatar */}
-          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
+          <div className="w-16 h-16 sm:w-20 sm:h-20 bg-blue-100 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0 mx-auto sm:mx-0">
             {profile?.avatar_url ? (
               <img
                 src={profile.avatar_url}
@@ -195,21 +195,21 @@ const Profile: React.FC = () => {
                 className="w-full h-full object-cover"
               />
             ) : (
-              <span className="text-blue-600 text-xl font-bold">
+              <span className="text-blue-600 text-xl sm:text-2xl font-bold">
                 {profileData.name.charAt(0).toUpperCase()}
               </span>
             )}
           </div>
 
           {/* Profile Info */}
-          <div className="flex-1 min-w-0">
-            <h1 className="text-2xl font-bold text-gray-900 mb-1 truncate">
+          <div className="flex-1 min-w-0 w-full sm:w-auto text-center sm:text-left">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1 truncate">
               {profileData.name}
             </h1>
-            <p className="text-gray-600 mb-3">{profileData.bio}</p>
+            <p className="text-sm sm:text-base text-gray-600 mb-3">{profileData.bio}</p>
 
             {/* Stats */}
-            <div className="flex items-center space-x-6 text-sm text-gray-600 mb-4 flex-wrap gap-2">
+            <div className="flex items-center justify-center sm:justify-start space-x-4 sm:space-x-6 text-xs sm:text-sm text-gray-600 mb-4 flex-wrap gap-2">
               {loadingStats ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
@@ -231,12 +231,14 @@ const Profile: React.FC = () => {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex space-x-3 mb-4 flex-wrap gap-2">
-              <Button onClick={handleMyBusinessPage} size="sm">My Business Page</Button>
-              <Button onClick={handlePlanMyDay} variant="outline" size="sm">
+            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 mb-4">
+              <Button onClick={handleMyBusinessPage} size="sm" className="w-full sm:w-auto text-xs sm:text-sm">
+                My Business Page
+              </Button>
+              <Button onClick={handlePlanMyDay} variant="outline" size="sm" className="w-full sm:w-auto text-xs sm:text-sm">
                 Plan My Day
               </Button>
-              <Button onClick={handleEditProfile} variant="outline" size="sm">
+              <Button onClick={handleEditProfile} variant="outline" size="sm" className="w-full sm:w-auto text-xs sm:text-sm">
                 Edit Profile
               </Button>
             </div>
@@ -244,7 +246,7 @@ const Profile: React.FC = () => {
             {/* Profile Completion */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-gray-600">
+                <span className="text-xs sm:text-sm text-gray-600">
                   Profile Completion: {profileData.profileCompletion}%
                 </span>
               </div>
@@ -260,20 +262,20 @@ const Profile: React.FC = () => {
       </div>
 
       {/* Favorites Section */}
-      <div className="p-6 ">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Favorites</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="p-3 sm:p-4 md:p-6">
+        <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Favorites</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-3 md:gap-4">
           {favoriteMenuItems.map((item) => (
             <button
               key={item.id}
               onClick={() => handleSectionClick(item.id)}
-              className={`p-4 rounded-lg border border-border-primary bg-white hover:bg-gray-50 transition-colors duration-200 text-center ${
+              className={`p-3 sm:p-4 rounded-lg border border-border-primary bg-white hover:bg-gray-50 active:bg-gray-100 transition-colors duration-200 text-center ${
                 activeSection === item.id
                   ? "ring-2 ring-blue-500 border-blue-500"
                   : ""
               }`}
             >
-              <div className="flex flex-col items-center space-y-2">
+              <div className="flex flex-col items-center space-y-1 sm:space-y-2">
                 <div className="text-gray-600 relative">
                   {item.icon}
                   {item.count !== undefined && item.count > 0 && (
@@ -282,7 +284,7 @@ const Profile: React.FC = () => {
                     </span>
                   )}
                 </div>
-                <span className="text-sm font-medium text-gray-900">
+                <span className="text-xs sm:text-sm font-medium text-gray-900 break-words">
                   {item.label}
                 </span>
               </div>
@@ -292,8 +294,8 @@ const Profile: React.FC = () => {
       </div>
 
       {/* Settings Section */}
-      <div className="p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Settings</h2>
+      <div className="p-3 sm:p-4 md:p-6">
+        <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Settings</h2>
         <div className="space-y-2">
           {settingsMenuItems.map((item) => (
             <button
@@ -308,30 +310,30 @@ const Profile: React.FC = () => {
                 }
               }}
               disabled={loggingOut && item.id === "logout"}
-              className={`w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 bg-bg-primary border border-border-primary transition-colors duration-200 text-left ${
+              className={`w-full flex items-center space-x-3 p-3 sm:p-4 rounded-lg hover:bg-gray-50 active:bg-gray-100 bg-bg-primary border border-border-primary transition-colors duration-200 text-left ${
                 item.id === "logout" ? "hover:bg-red-50 hover:text-red-600" : ""
               } ${loggingOut && item.id === "logout" ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               <div
-                className={`${
+                className={`flex-shrink-0 ${
                   item.id === "logout" ? "text-red-500" : "text-gray-600"
                 }`}
               >
                 {loggingOut && item.id === "logout" ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
                 ) : (
                   item.icon
                 )}
               </div>
               <span
-                className={`font-medium ${
+                className={`font-medium text-sm sm:text-base ${
                   item.id === "logout" ? "text-red-600" : "text-gray-900"
                 }`}
               >
                 {item.label}
               </span>
               {item.count && (
-                <span className="ml-auto bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                <span className="ml-auto bg-blue-100 text-blue-800 text-xs font-medium px-2 sm:px-2.5 py-0.5 rounded-full flex-shrink-0">
                   {item.count}
                 </span>
               )}
