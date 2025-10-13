@@ -11,6 +11,8 @@ import {
   Shield,
   LogOut,
   Loader2,
+  Plus,
+  Building2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router";
@@ -19,6 +21,7 @@ import { ReviewService } from "@/services/reviewService";
 import { FavoriteService } from "@/services/favoriteService";
 import { BusinessService, type Business } from "@/services/businessService";
 import { toast } from "sonner";
+import CreateBusinessModal from "@/components/business/CreateBusinessModal";
 
 interface MenuItem {
   id: string;
@@ -39,10 +42,13 @@ const Profile: React.FC = () => {
   const [loadingStats, setLoadingStats] = useState(true);
   const [loggingOut, setLoggingOut] = useState(false);
   const [loadingBusiness, setLoadingBusiness] = useState(false);
+  const [userBusiness, setUserBusiness] = useState<Business | null>(null);
+  const [showCreateBusinessModal, setShowCreateBusinessModal] = useState(false);
+  const [checkingBusiness, setCheckingBusiness] = useState(false);
   const navigate = useNavigate();
   const { profile, user, signOut } = useAuth();
 
-  // Load user stats
+  // Load user stats and business
   useEffect(() => {
     const loadStats = async () => {
       if (!profile) return;
@@ -66,7 +72,24 @@ const Profile: React.FC = () => {
       }
     };
 
+    const checkUserBusiness = async () => {
+      if (!profile?.id) return;
+
+      try {
+        setCheckingBusiness(true);
+        const businesses = await BusinessService.getBusinessesByOwner(profile.id);
+        if (businesses && businesses.length > 0) {
+          setUserBusiness(businesses[0]); // Get the first business
+        }
+      } catch (error) {
+        console.error('Error checking business:', error);
+      } finally {
+        setCheckingBusiness(false);
+      }
+    };
+
     loadStats();
+    checkUserBusiness();
   }, [profile]);
 
   // Calculate profile completion percentage
@@ -177,23 +200,32 @@ const Profile: React.FC = () => {
       return;
     }
 
+    if (userBusiness) {
+      // Navigate to existing business
+      navigate(`/business/${userBusiness.id}`);
+    } else {
+      // No business yet, show create modal
+      setShowCreateBusinessModal(true);
+    }
+  };
+
+  const handleCreateBusiness = (): void => {
+    setShowCreateBusinessModal(true);
+  };
+
+  const handleBusinessCreated = async (businessId: string): Promise<void> => {
+    // Refresh the user's business data
     try {
-      setLoadingBusiness(true);
-      const businesses: Business[] = await BusinessService.getBusinessesByOwner(profile.id);
-      
+      const businesses = await BusinessService.getBusinessesByOwner(profile!.id);
       if (businesses && businesses.length > 0) {
-        // Navigate to the first business (most recent one)
-        navigate(`/business/${businesses[0].id}`);
-      } else {
-        toast.info("You don't have a business yet. Create one to get started!", {
-          description: "Switch to business mode to create your business profile"
-        });
+        setUserBusiness(businesses[0]);
       }
+      
+      // Navigate to the newly created business page
+      navigate(`/business/${businessId}`);
     } catch (error) {
-      console.error("Error fetching business:", error);
-      toast.error("Failed to load your business page");
-    } finally {
-      setLoadingBusiness(false);
+      console.error("Error loading business after creation:", error);
+      toast.error("Business created but failed to load. Please refresh the page.");
     }
   };
 
@@ -256,21 +288,34 @@ const Profile: React.FC = () => {
 
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 mb-4">
-              <Button 
-                onClick={handleMyBusinessPage} 
-                size="sm" 
-                className="w-full sm:w-auto text-xs sm:text-sm"
-                disabled={loadingBusiness}
-              >
-                {loadingBusiness ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Loading...
-                  </>
-                ) : (
-                  "My Business Page"
-                )}
-              </Button>
+              {checkingBusiness ? (
+                <Button 
+                  size="sm" 
+                  className="w-full sm:w-auto text-xs sm:text-sm"
+                  disabled
+                >
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Checking...
+                </Button>
+              ) : userBusiness ? (
+                <Button 
+                  onClick={handleMyBusinessPage} 
+                  size="sm" 
+                  className="w-full sm:w-auto text-xs sm:text-sm"
+                >
+                  <Building2 className="w-4 h-4 mr-2" />
+                  My Business Page
+                </Button>
+              ) : (
+                <Button 
+                  onClick={handleCreateBusiness} 
+                  size="sm" 
+                  className="w-full sm:w-auto text-xs sm:text-sm bg-green-600 hover:bg-green-700"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Business
+                </Button>
+              )}
               <Button onClick={handlePlanMyDay} variant="outline" size="sm" className="w-full sm:w-auto text-xs sm:text-sm">
                 Plan My Day
               </Button>
@@ -296,6 +341,50 @@ const Profile: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Business Info Section - Only show if user has a business */}
+      {userBusiness && (
+        <div className="p-3 sm:p-4 md:p-6">
+          <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">My Business</h2>
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4 sm:p-6">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Building2 className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-1">
+                  {userBusiness.name}
+                </h3>
+                <p className="text-sm text-gray-600 mb-2">{userBusiness.category}</p>
+                {userBusiness.description && (
+                  <p className="text-sm text-gray-700 line-clamp-2 mb-3">
+                    {userBusiness.description}
+                  </p>
+                )}
+                <div className="flex flex-wrap gap-2 text-xs sm:text-sm text-gray-600">
+                  <span className="flex items-center">
+                    <Star className="w-4 h-4 mr-1 fill-yellow-400 text-yellow-400" />
+                    {userBusiness.rating.toFixed(1)} ({userBusiness.total_reviews} reviews)
+                  </span>
+                  {userBusiness.verified && (
+                    <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full font-medium">
+                      ✓ Verified
+                    </span>
+                  )}
+                </div>
+                <Button 
+                  onClick={() => navigate(`/business/${userBusiness.id}`)} 
+                  size="sm" 
+                  className="mt-4 text-xs sm:text-sm"
+                  variant="outline"
+                >
+                  View Business Page
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Favorites Section */}
       <div className="p-3 sm:p-4 md:p-6">
@@ -377,6 +466,13 @@ const Profile: React.FC = () => {
           ))}
         </div>
       </div>
+
+      {/* Create Business Modal */}
+      <CreateBusinessModal
+        isOpen={showCreateBusinessModal}
+        onClose={() => setShowCreateBusinessModal(false)}
+        onSuccess={handleBusinessCreated}
+      />
     </div>
   );
 };
