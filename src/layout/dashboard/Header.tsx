@@ -18,10 +18,11 @@ import NotificationCenter from "@/components/notifications/NotificationCenter";
 
 type Props = {
   drawerWidth: number;
+  collapsedWidth: number;
   handleDrawerToggle: () => void;
 };
 
-function Header({ drawerWidth, handleDrawerToggle }: Props) {
+function Header({ drawerWidth, collapsedWidth, handleDrawerToggle }: Props) {
   const { setTheme, theme } = useTheme();
   const { profile, signOut } = useAuth();
   const navigate = useNavigate();
@@ -35,6 +36,7 @@ function Header({ drawerWidth, handleDrawerToggle }: Props) {
   // Extract the value for CSS custom properties
   const cssVars = {
     "--drawer-width": `${drawerWidth}px`,
+    "--collapsed-width": `${collapsedWidth}px`,
   } as React.CSSProperties;
 
   const toggleTheme = () => {
@@ -53,7 +55,7 @@ function Header({ drawerWidth, handleDrawerToggle }: Props) {
   return (
     <div
       style={cssVars}
-      className="fixed top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border py-2 px-4 w-full sm:ml-[var(--drawer-width)] sm:w-[calc(100%_-_var(--drawer-width))]"
+      className="fixed top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border py-2 px-4 w-full sm:ml-[var(--collapsed-width)] sm:w-[calc(100%_-_var(--collapsed-width))] transition-all duration-300"
     >
       <div className="flex items-center justify-between w-full max-w-full">
         {/* Left side - Mobile menu button */}

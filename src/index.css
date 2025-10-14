@@ -347,6 +347,28 @@
     min-height: 44px;
     min-width: 44px;
   }
+
+  /* Sidebar hover indicator */
+  .sidebar-hover-indicator {
+    position: relative;
+  }
+
+  .sidebar-hover-indicator::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 40%;
+    background: linear-gradient(to bottom, transparent, rgba(59, 130, 246, 0.5), transparent);
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+  }
+
+  .sidebar-hover-indicator:hover::after {
+    opacity: 1;
+  }
 }
 
 /* High contrast mode support */
