@@ -11,7 +11,7 @@ function Layout() {
   };
 
   return (
-    <div className="flex">
+    <div className="flex min-h-screen w-full overflow-x-hidden">
       <Header
         drawerWidth={drawerWidth}
         handleDrawerToggle={handleDrawerToggle}

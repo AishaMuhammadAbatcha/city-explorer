@@ -53,9 +53,9 @@ function Header({ drawerWidth, handleDrawerToggle }: Props) {
   return (
     <div
       style={cssVars}
-      className="fixed top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border py-2 px-4 w-full sm:w-[calc(100%_-_var(--drawer-width))] sm:ml-[var(--drawer-width)]"
+      className="fixed top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border py-2 px-4 w-full sm:ml-[var(--drawer-width)] sm:w-[calc(100%_-_var(--drawer-width))]"
     >
-      <div className="flex items-center justify-between w-full">
+      <div className="flex items-center justify-between w-full max-w-full">
         {/* Left side - Mobile menu button */}
         <div className="flex items-center gap-4">
           <Button

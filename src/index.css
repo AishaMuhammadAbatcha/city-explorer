@@ -239,14 +239,11 @@
     min-height: -webkit-fill-available;
   }
 
-  /* Prevent any element from causing horizontal scroll */
-  * {
-    max-width: 100%;
-  }
-
-  /* Allow specific elements to exceed if needed */
-  svg, img {
-    max-width: none;
+  /* Prevent root level elements from causing horizontal scroll */
+  #root {
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
   }
 
   /* Fix for iOS Safari viewport units */

@@ -22,7 +22,7 @@ export function ResponsiveContainer({
     md: 'max-w-2xl',
     lg: 'max-w-4xl',
     xl: 'max-w-6xl',
-    full: 'max-w-full'
+    full: 'w-full max-w-full'
   }
 
   const paddingClasses = {
@@ -38,7 +38,7 @@ export function ResponsiveContainer({
         'w-full',
         sizeClasses[size],
         paddingClasses[padding],
-        center && 'mx-auto',
+        center && size !== 'full' && 'mx-auto',
         className
       )}
     >
