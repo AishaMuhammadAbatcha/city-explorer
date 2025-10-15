@@ -1,18 +1,14 @@
 import React, { useState, useEffect } from "react";
 import {
   Star,
-  Camera,
-  CreditCard,
   Settings,
-  Bell,
-  Mail,
   MessageCircle,
-  Palette,
-  Shield,
   LogOut,
   Loader2,
   Plus,
   Building2,
+  MapPin,
+  Heart,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router";
@@ -45,6 +41,9 @@ const Profile: React.FC = () => {
   const [userBusiness, setUserBusiness] = useState<Business | null>(null);
   const [showCreateBusinessModal, setShowCreateBusinessModal] = useState(false);
   const [checkingBusiness, setCheckingBusiness] = useState(false);
+  const [favorites, setFavorites] = useState<Business[]>([]);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [loadingContent, setLoadingContent] = useState(false);
   const navigate = useNavigate();
   const { profile, user, signOut } = useAuth();
 
@@ -119,61 +118,45 @@ const Profile: React.FC = () => {
 
   const favoriteMenuItems: MenuItem[] = [
     { id: "favorites", label: "Favorites", icon: <Star className="w-5 h-5" />, count: stats.favoriteCount },
-    { id: "points", label: "My Points", icon: <Star className="w-5 h-5" /> },
     {
       id: "reviews",
       label: "Reviews",
       icon: <MessageCircle className="w-5 h-5" />,
       count: stats.reviewCount,
     },
-    { id: "photos", label: "Photos", icon: <Camera className="w-5 h-5" /> },
-    {
-      id: "payments",
-      label: "Payments",
-      icon: <CreditCard className="w-5 h-5" />,
-    },
-    {
-      id: "settings",
-      label: "Settings",
-      icon: <Settings className="w-5 h-5" />,
-    },
   ];
 
   const settingsMenuItems: MenuItem[] = [
     {
-      id: "push",
-      label: "Push Notifications",
-      icon: <Bell className="w-5 h-5" />,
-    },
-    {
-      id: "email",
-      label: "Email Notifications",
-      icon: <Mail className="w-5 h-5" />,
-    },
-    {
-      id: "messaging",
-      label: "Direct Messaging",
-      icon: <MessageCircle className="w-5 h-5" />,
-    },
-    {
-      id: "preferences",
-      label: "Preferences",
+      id: "edit-profile",
+      label: "Edit Profile",
       icon: <Settings className="w-5 h-5" />,
-    },
-    { id: "theme", label: "Theme", icon: <Palette className="w-5 h-5" /> },
-    {
-      id: "security",
-      label: "Security & Login",
-      icon: <Shield className="w-5 h-5" />,
     },
     { id: "logout", label: "Logout", icon: <LogOut className="w-5 h-5" /> },
   ];
 
-  const handleSectionClick = (sectionId: string): void => {
+  const handleSectionClick = async (sectionId: string): Promise<void> => {
     if (sectionId === "logout") {
       handleLogout();
-    } else {
-      setActiveSection(sectionId);
+      return;
+    }
+
+    setActiveSection(sectionId);
+    setLoadingContent(true);
+
+    try {
+      if (sectionId === "favorites") {
+        const userFavorites = await FavoriteService.getUserFavorites();
+        setFavorites(userFavorites || []);
+      } else if (sectionId === "reviews" && profile) {
+        const userReviews = await ReviewService.getReviewsByUser(profile.id);
+        setReviews(userReviews || []);
+      }
+    } catch (error) {
+      console.error(`Error loading ${sectionId}:`, error);
+      toast.error(`Failed to load ${sectionId}`);
+    } finally {
+      setLoadingContent(false);
     }
   };
 
@@ -388,8 +371,8 @@ const Profile: React.FC = () => {
 
       {/* Favorites Section */}
       <div className="p-3 sm:p-4 md:p-6">
-        <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Favorites</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-3 md:gap-4">
+        <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">My Activity</h2>
+        <div className="grid grid-cols-2 gap-2 sm:gap-3 md:gap-4 mb-6">
           {favoriteMenuItems.map((item) => (
             <button
               key={item.id}
@@ -416,6 +399,101 @@ const Profile: React.FC = () => {
             </button>
           ))}
         </div>
+
+        {/* Content Display */}
+        {loadingContent ? (
+          <div className="text-center py-8">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-600" />
+            <p className="text-gray-600 mt-2">Loading...</p>
+          </div>
+        ) : activeSection === "favorites" ? (
+          <div>
+            <h3 className="text-lg font-semibold mb-4">My Favorite Places</h3>
+            {favorites.length === 0 ? (
+              <div className="text-center py-8 bg-gray-50 rounded-lg">
+                <Heart className="w-12 h-12 mx-auto text-gray-400 mb-2" />
+                <p className="text-gray-600">No favorites yet</p>
+                <Button onClick={() => navigate('/explore')} variant="outline" size="sm" className="mt-4">
+                  Explore Places
+                </Button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {favorites.map((business) => (
+                  <div
+                    key={business.id}
+                    onClick={() => navigate(`/business/${business.id}`)}
+                    className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md cursor-pointer transition-shadow"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <Building2 className="w-6 h-6 text-blue-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-gray-900 mb-1">{business.name}</h4>
+                        <p className="text-sm text-gray-600 mb-2">{business.category}</p>
+                        <div className="flex items-center text-sm text-gray-500">
+                          <MapPin className="w-4 h-4 mr-1" />
+                          <span className="truncate">{business.city}</span>
+                        </div>
+                        {business.rating > 0 && (
+                          <div className="flex items-center mt-2">
+                            <Star className="w-4 h-4 text-yellow-400 fill-yellow-400 mr-1" />
+                            <span className="text-sm">{business.rating.toFixed(1)}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : activeSection === "reviews" ? (
+          <div>
+            <h3 className="text-lg font-semibold mb-4">My Reviews</h3>
+            {reviews.length === 0 ? (
+              <div className="text-center py-8 bg-gray-50 rounded-lg">
+                <MessageCircle className="w-12 h-12 mx-auto text-gray-400 mb-2" />
+                <p className="text-gray-600">No reviews yet</p>
+                <Button onClick={() => navigate('/explore')} variant="outline" size="sm" className="mt-4">
+                  Explore Places to Review
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {reviews.map((review) => (
+                  <div
+                    key={review.id}
+                    className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <h4 className="font-semibold text-gray-900">{review.business?.name || 'Business'}</h4>
+                      <div className="flex items-center">
+                        {[...Array(5)].map((_, i) => (
+                          <Star
+                            key={i}
+                            className={`w-4 h-4 ${
+                              i < review.rating
+                                ? 'text-yellow-400 fill-yellow-400'
+                                : 'text-gray-300'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    {review.comment && (
+                      <p className="text-sm text-gray-600">{review.comment}</p>
+                    )}
+                    <p className="text-xs text-gray-400 mt-2">
+                      {new Date(review.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : null}
       </div>
 
       {/* Settings Section */}
@@ -426,7 +504,7 @@ const Profile: React.FC = () => {
             <button
               key={item.id}
               onClick={() => {
-                if (item.id === "settings") {
+                if (item.id === "edit-profile") {
                   handleEditProfile();
                 } else if (item.id === "logout") {
                   handleLogout();
