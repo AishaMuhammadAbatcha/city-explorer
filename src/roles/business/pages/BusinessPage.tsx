@@ -87,7 +87,8 @@ const BusinessPage: React.FC = () => {
   }
 
   return (
-    <div className="border border-border-primary rounded-lg shadow-sm bg-bg-primary p-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div className="border border-border-primary rounded-lg shadow-sm bg-bg-primary dark:bg-gray-800 p-6">
       {/* Header Image */}
       <div className="relative h-48 bg-gradient-to-r from-amber-100 to-orange-100">
         {business.image_url ? (
@@ -318,6 +319,7 @@ const BusinessPage: React.FC = () => {
           <ReviewsManagement businessId={business.id} />
         )}
       </div>
+    </div>
     </div>
   );
 };

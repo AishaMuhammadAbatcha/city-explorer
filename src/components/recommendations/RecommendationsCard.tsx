@@ -51,15 +51,15 @@ export function RecommendationsCard({
   const getTypeColor = () => {
     switch (type) {
       case 'personalized':
-        return 'border-blue-200 bg-blue-50'
+        return 'border-blue-200 bg-blue-50 dark:border-gray-700 dark:bg-gray-800/50'
       case 'trending':
-        return 'border-green-200 bg-green-50'
+        return 'border-green-200 bg-green-50 dark:border-gray-700 dark:bg-gray-800/50'
       case 'similar':
-        return 'border-purple-200 bg-purple-50'
+        return 'border-purple-200 bg-purple-50 dark:border-gray-700 dark:bg-gray-800/50'
       case 'contextual':
-        return 'border-orange-200 bg-orange-50'
+        return 'border-orange-200 bg-orange-50 dark:border-gray-700 dark:bg-gray-800/50'
       default:
-        return 'border-gray-200 bg-gray-50'
+        return 'border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/50'
     }
   }
 
@@ -102,7 +102,7 @@ export function RecommendationsCard({
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
-            <p className="text-gray-600 mb-4">{error}</p>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">{error}</p>
             {onRefresh && (
               <Button variant="outline" onClick={onRefresh}>
                 Reload Recommendations
@@ -133,10 +133,10 @@ export function RecommendationsCard({
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
               {getTypeIcon()}
             </div>
-            <p className="text-gray-600 mb-4">
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
               No recommendations available right now. Check back later or try exploring different areas.
             </p>
             {onRefresh && (
@@ -182,7 +182,7 @@ export function RecommendationsCard({
 
         {recommendations.length > maxItems && (
           <div className="mt-4 text-center">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
               Showing {maxItems} of {recommendations.length} recommendations
             </p>
           </div>
@@ -225,10 +225,10 @@ function RecommendationItem({ recommendation, onSelect, showScore }: Recommendat
 
   return (
     <Card
-      className="cursor-pointer hover:shadow-md transition-shadow duration-200 bg-white"
+      className="cursor-pointer hover:shadow-md transition-shadow duration-200 bg-white dark:bg-gray-900"
       onClick={() => onSelect?.(recommendation)}
     >
-      <div className="relative overflow-hidden bg-gray-100">
+      <div className="relative overflow-hidden bg-gray-100 dark:bg-gray-800">
         <img
           src={photo}
           alt={name}
@@ -259,7 +259,7 @@ function RecommendationItem({ recommendation, onSelect, showScore }: Recommendat
           )}
         </div>
 
-        <div className="flex items-center text-gray-600 text-xs">
+        <div className="flex items-center text-gray-600 dark:text-gray-400 text-xs">
           <MapPin className="w-3 h-3 mr-1 flex-shrink-0" />
           <span className="line-clamp-1">{address}</span>
         </div>

@@ -91,10 +91,10 @@ const PlacesAutocomplete: React.FC<Props> = ({ label, onSelect }) => {
         }}
         onFocus={() => setOpen(true)}
         onBlur={() => setTimeout(() => setOpen(false), 180)}
-        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-gray-500 dark:placeholder:text-gray-400"
       />
       {open && suggestions.length > 0 && (
-        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+        <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md shadow-lg max-h-60 overflow-auto">
           {suggestions.map((s, i) => {
             const p = s.placePrediction!;
             return (
@@ -102,9 +102,9 @@ const PlacesAutocomplete: React.FC<Props> = ({ label, onSelect }) => {
                 key={`${p.placeId}-${i}`}
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => handleSelect(s)}
-                className="px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-700 last:border-b-0"
               >
-                <p className="text-sm">{p.text?.text ?? "Suggestion"}</p>
+                <p className="text-sm text-gray-900 dark:text-gray-100">{p.text?.text ?? "Suggestion"}</p>
               </div>
             );
           })}

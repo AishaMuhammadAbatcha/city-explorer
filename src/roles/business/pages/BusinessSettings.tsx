@@ -65,9 +65,9 @@ const BusinessSettings = () => {
   };
 
   return (
-    <div className="h-full w-full">
-      <form onSubmit={handleSubmit(onSubmit)} className="w-full max-w-md py-4">
-        <div className="bg-white border-1 border-border-primary rounded-md w-full p-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 h-full w-full">
+      <form onSubmit={handleSubmit(onSubmit)} className="w-full max-w-md">
+        <div className="bg-white dark:bg-gray-800 border-1 border-border-primary rounded-md w-full p-6">
           <CustomTextField
             label="Business Name"
             placeholder="Type your business name"

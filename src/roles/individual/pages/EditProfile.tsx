@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/context/ToastContext";
+import { toast } from "sonner";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { editProfileSchema, type EditProfileSchema } from "./schema";
 import CustomTextField from "@/components/inputs/CustomTextField";
@@ -13,17 +13,16 @@ const EditProfile = () => {
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<EditProfileSchema>({ resolver: zodResolver(editProfileSchema) });
-  const { showToast } = useToast();
   const navigate = useNavigate();
 
   const onSubmit: SubmitHandler<EditProfileSchema> = async (data) => {
     try {
       console.log("Profile data:", data);
-      showToast("Profile updated successfully", "success");
+      toast.success("Profile updated successfully");
       navigate("/settings");
     } catch (error: any) {
       console.error("Error updating profile:", error);
-      showToast("Something went wrong", "error");
+      toast.error("Something went wrong");
     }
   };
 

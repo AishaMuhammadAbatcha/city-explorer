@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Calendar, Clock, Search, MapIcon, Loader2 } from "lucide-react";
+import { MapPin, Calendar, Clock, Search, MapIcon, Loader2, Store } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router";
 import { usePlaces } from "@/hooks/usePlaces";
 import type { GooglePlace } from "@/services/maps/placesService";
@@ -154,48 +154,16 @@ const EventDiscoveryApp: React.FC = () => {
     }
   };
 
-  const events: Event[] = [
-    {
-      id: 1,
-      title: "Abuja Food Fest",
-      date: "July 20, 2025",
-      time: "12:00 PM - 6:00 PM",
-      location: "Jabi Lake Mall, Abuja",
-      description:
-        "Join us for an unforgettable culinary experience featuring local and international food vendors, live music, games, and giveaways.",
-      image: "/api/placeholder/300/200",
-      isPaid: true,
-      price: 5000, // ₦50 in kobo
-    },
-    {
-      id: 2,
-      title: "Free Community Cleanup",
-      date: "July 25, 2025",
-      time: "8:00 AM - 12:00 PM",
-      location: "Central Park, Abuja",
-      description:
-        "Join us for a community cleanup event to make our city cleaner and greener.",
-      image: "/api/placeholder/300/200",
-      isPaid: false,
-    },
-  ];
-
-
-  const collections: Collection[] = [
-    {
-      id: 1,
-      name: "Romantic Spots",
-      description: "Curated restaurants for date nights",
-      image: "/api/placeholder/100/100",
-    },
-  ];
+  // These will be loaded from the database
+  const events: Event[] = [];
+  const collections: Collection[] = [];
 
   return (
     <div className="min-h-screen">
-      <div className="">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <h1 className="text-3xl font-semibold mb-8">Discover</h1>
 
-        <Tabs defaultValue="explore" className="w-full ">
+        <Tabs defaultValue="explore" className="w-full">
           <TabsList className="grid w-full grid-cols-3 mb-8">
             <TabsTrigger
               value="explore"
@@ -219,7 +187,7 @@ const EventDiscoveryApp: React.FC = () => {
 
           <TabsContent value="explore" className="space-y-6">
             {/* Search Bar */}
-            <div className="sticky top-0 bg-white z-10 pb-4">
+            <div className="sticky top-0 bg-white dark:bg-gray-900 z-10 pb-4">
               <form onSubmit={handleSearchSubmit} className="flex space-x-2">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -272,8 +240,8 @@ const EventDiscoveryApp: React.FC = () => {
               </div>
 
               {error && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-                  <p className="text-red-700">{error}</p>
+                <div className="bg-red-50 dark:bg-gray-800/50 border border-red-200 dark:border-gray-700 rounded-lg p-4 mb-4">
+                  <p className="text-red-700 dark:text-red-400">{error}</p>
                 </div>
               )}
 
@@ -281,7 +249,7 @@ const EventDiscoveryApp: React.FC = () => {
                 <div className="flex items-center justify-center py-12">
                   <div className="flex items-center space-x-2">
                     <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
-                    <span className="text-gray-600">Finding places near you...</span>
+                    <span className="text-gray-600 dark:text-gray-400">Finding places near you...</span>
                   </div>
                 </div>
               ) : googlePlaces.length > 0 ? (
@@ -297,8 +265,8 @@ const EventDiscoveryApp: React.FC = () => {
               ) : !loading && (
                 <div className="text-center py-12">
                   <MapIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No places found</h3>
-                  <p className="text-gray-600 mb-4">
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No places found</h3>
+                  <p className="text-gray-600 dark:text-gray-400 mb-4">
                     {searchQuery
                       ? "Try adjusting your search terms or explore different categories"
                       : "Try selecting a different category or searching for specific places"
@@ -325,10 +293,10 @@ const EventDiscoveryApp: React.FC = () => {
                   {events.map((event: Event) => (
                     <div
                       key={event.id}
-                      className="flex items-center space-x-4 p-4 bg-white rounded-lg shadow-sm border border-border-primary cursor-pointer hover:shadow-md transition-shadow"
+                      className="flex items-center space-x-4 p-4 bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-border-primary cursor-pointer hover:shadow-md transition-shadow"
                       onClick={() => handleEventClick(event)}
                     >
-                      <div className="w-20 h-20 bg-gray-200 rounded-lg flex-shrink-0">
+                      <div className="w-20 h-20 bg-gray-200 dark:bg-gray-800 rounded-lg flex-shrink-0">
                         <img
                           src={event.image}
                           alt={event.title}
@@ -337,7 +305,7 @@ const EventDiscoveryApp: React.FC = () => {
                       </div>
                       <div>
                         <h3 className="text-lg font-semibold">{event.title}</h3>
-                        <p className="text-gray-600">
+                        <p className="text-gray-600 dark:text-gray-400">
                           Date: July 12 • Location: {event.location}
                         </p>
                       </div>
@@ -352,30 +320,10 @@ const EventDiscoveryApp: React.FC = () => {
             <h2 className="text-2xl font-semibold text-text-primary mb-6">
               Upcoming Events
             </h2>
-            <div className="space-y-4">
-              {events.map((event: Event) => (
-                <div
-                  key={event.id}
-                  className="flex items-center space-x-4 p-4 bg-white rounded-lg shadow-sm border cursor-pointer hover:shadow-md transition-shadow"
-                  onClick={() => handleEventClick(event)}
-                >
-                  <div className="w-20 h-20 bg-gray-200 rounded-lg flex-shrink-0">
-                    <img
-                      src={event.image}
-                      alt={event.title}
-                      className="w-full h-full object-cover rounded-lg"
-                    />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-blue-600">
-                      {event.title}
-                    </h3>
-                    <p className="text-gray-600">
-                      Date: July 12 • Location: {event.location}
-                    </p>
-                  </div>
-                </div>
-              ))}
+            <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-lg">
+              <Calendar className="w-16 h-16 mx-auto text-gray-400 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No Events Available</h3>
+              <p className="text-gray-600 dark:text-gray-400">Check back later for upcoming events in your area</p>
             </div>
           </TabsContent>
 
@@ -383,27 +331,10 @@ const EventDiscoveryApp: React.FC = () => {
             <h2 className="text-2xl font-semibold text-text-primary mb-6">
               Top Collections
             </h2>
-            <div className="space-y-4">
-              {collections.map((collection: Collection) => (
-                <div
-                  key={collection.id}
-                  className="flex items-center space-x-4 p-4 bg-white rounded-lg shadow-sm border"
-                >
-                  <div className="w-20 h-20 bg-gray-200 rounded-lg flex-shrink-0">
-                    <img
-                      src={collection.image}
-                      alt={collection.name}
-                      className="w-full h-full object-cover rounded-lg"
-                    />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-text-primary">
-                      {collection.name}
-                    </h3>
-                    <p className="text-gray-600">{collection.description}</p>
-                  </div>
-                </div>
-              ))}
+            <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-lg">
+              <Store className="w-16 h-16 mx-auto text-gray-400 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No Collections Available</h3>
+              <p className="text-gray-600 dark:text-gray-400">Collections will appear here soon</p>
             </div>
           </TabsContent>
         </Tabs>

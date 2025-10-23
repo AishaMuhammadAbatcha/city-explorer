@@ -41,8 +41,8 @@ export const PlaceCard: React.FC<PlaceCardProps> = ({ place, onSelect }) => {
   const isOpen = place.opening_hours?.open_now
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200">
-      <div className="relative overflow-hidden bg-gray-100">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow duration-200">
+      <div className="relative overflow-hidden bg-gray-100 dark:bg-gray-700">
         <img
           src={getPlacePhoto()}
           alt={place.name}
@@ -66,7 +66,7 @@ export const PlaceCard: React.FC<PlaceCardProps> = ({ place, onSelect }) => {
 
       <div className="p-4">
         <div className="flex items-start justify-between mb-2">
-          <h3 className="text-lg font-semibold text-gray-900 line-clamp-1">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 line-clamp-1">
             {place.name}
           </h3>
           {place.rating && (
@@ -74,13 +74,13 @@ export const PlaceCard: React.FC<PlaceCardProps> = ({ place, onSelect }) => {
               <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
               <span className="font-medium">{place.rating.toFixed(1)}</span>
               {place.user_ratings_total && (
-                <span className="text-gray-500">({place.user_ratings_total})</span>
+                <span className="text-gray-500 dark:text-gray-400">({place.user_ratings_total})</span>
               )}
             </div>
           )}
         </div>
 
-        <div className="flex items-center text-gray-600 mb-2">
+        <div className="flex items-center text-gray-600 dark:text-gray-400 mb-2">
           <MapPin className="w-4 h-4 mr-1 flex-shrink-0" />
           <span className="text-sm line-clamp-1">{place.formatted_address}</span>
         </div>

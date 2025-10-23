@@ -4,6 +4,8 @@ import Directions from "../components/Directions";
 import PlacesAutocomplete from "./PlacesAutoComplete";
 import { placesService } from "@/services/maps/placesService";
 import type { GooglePlace } from "@/services/maps/placesService";
+import { Button } from "@/components/ui/button";
+import { Navigation } from "lucide-react";
 
 type Location = { lat: number; lng: number };
 
@@ -12,6 +14,8 @@ const DEFAULT_CENTER: Location = { lat: 9.0563, lng: 7.4985 };
 const Maps: React.FC = () => {
   const [origin, setOrigin] = useState<Location | null>(null);
   const [destination, setDestination] = useState<Location | null>(null);
+  const [tempOrigin, setTempOrigin] = useState<Location | null>(null);
+  const [tempDestination, setTempDestination] = useState<Location | null>(null);
   const [center, setCenter] = useState<Location>(DEFAULT_CENTER);
   const [nearbyPlaces, setNearbyPlaces] = useState<GooglePlace[]>([]);
   const [loading, setLoading] = useState(false);
@@ -40,38 +44,55 @@ const Maps: React.FC = () => {
     }
   }, [center.lat, center.lng, hasLoadedInitial, origin]);
 
+  const handleGetDirections = () => {
+    if (tempOrigin) {
+      setOrigin(tempOrigin);
+      setCenter(tempOrigin);
+    }
+    if (tempDestination) {
+      setDestination(tempDestination);
+    }
+  };
+
+  const canGetDirections = tempOrigin && tempDestination;
+
   return (
     <APIProvider apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string}>
       <div className="h-screen w-full flex flex-col">
         {/* Header / Legend / Inputs */}
-        <div className="shrink-0 bg-white shadow-sm">
-          <div className="p-4">
+        <div className="shrink-0 bg-white dark:bg-gray-900 shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <h2 className="text-xl font-semibold mb-3">
               Explore Places & Get Directions
             </h2>
-            <div className="flex gap-4 flex-wrap">
+            <div className="flex gap-4 flex-wrap items-end">
               <PlacesAutocomplete
                 label="From..."
-                onSelect={(loc) => {
-                  setOrigin(loc);
-                  setCenter(loc);
-                }}
+                onSelect={setTempOrigin}
               />
               <PlacesAutocomplete
                 label="To..."
-                onSelect={setDestination}
+                onSelect={setTempDestination}
               />
+              <Button
+                onClick={handleGetDirections}
+                disabled={!canGetDirections}
+                className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+              >
+                <Navigation className="w-4 h-4 mr-2" />
+                Get Directions
+              </Button>
             </div>
             <div className="mt-3 flex items-center gap-4 text-sm">
-              <p className="text-gray-600 flex items-center">
+              <p className="text-gray-600 dark:text-gray-400 flex items-center">
                 <span className="inline-block w-3 h-3 bg-green-500 rounded-full mr-2"></span>
                 Origin
               </p>
-              <p className="text-gray-600 flex items-center">
+              <p className="text-gray-600 dark:text-gray-400 flex items-center">
                 <span className="inline-block w-3 h-3 bg-blue-500 rounded-full mr-2"></span>
                 Destination
               </p>
-              <p className="text-gray-600 flex items-center">
+              <p className="text-gray-600 dark:text-gray-400 flex items-center">
                 <span className="inline-block w-3 h-3 bg-red-500 rounded-full mr-2"></span>
                 Nearby Restaurants {!loading && `(${nearbyPlaces.length})`}
               </p>

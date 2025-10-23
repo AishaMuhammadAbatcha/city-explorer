@@ -39,7 +39,7 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4 py-8">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 px-4 py-8">
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="space-y-1 px-4 sm:px-6">
           <div className="flex items-center justify-center mb-4">

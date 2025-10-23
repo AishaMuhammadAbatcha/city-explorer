@@ -168,7 +168,7 @@ function SideNav({ drawerWidth, handleDrawerToggle, mobileOpen }: Props) {
 
   // Mobile drawer (full version)
   const mobileDrawer = (
-    <div className="flex flex-col h-full bg-blue-50 dark:bg-blue-950 border-r border-border">
+    <div className="flex flex-col h-full bg-blue-50 dark:bg-gray-800 border-r border-border">
       {/* Logo section */}
       <div className="p-6 border-b border-border">
         <div className="flex items-center justify-between">
@@ -238,7 +238,7 @@ function SideNav({ drawerWidth, handleDrawerToggle, mobileOpen }: Props) {
   // Desktop drawer (collapsible version)
   const desktopDrawer = (
     <div 
-      className="flex flex-col h-full bg-blue-50 dark:bg-blue-950 border-r border-border transition-all duration-300 ease-in-out sidebar-hover-indicator"
+      className="flex flex-col h-full bg-blue-50 dark:bg-gray-800 border-r border-border transition-all duration-300 ease-in-out sidebar-hover-indicator"
       onMouseEnter={() => setIsExpanded(true)}
       onMouseLeave={() => setIsExpanded(false)}
     >
