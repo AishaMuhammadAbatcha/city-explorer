@@ -10,12 +10,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Calendar, Clock, Search, MapIcon, Loader2, Store } from "lucide-react";
+import { MapPin, Calendar, Clock, Search, MapIcon, Loader2, Store, Star, Phone, Globe } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router";
 import { usePlaces } from "@/hooks/usePlaces";
 import type { GooglePlace } from "@/services/maps/placesService";
 import PlaceCard from "@/components/places/PlaceCard";
 import PlaceDetails from "@/components/places/PlaceDetails";
+import { BusinessService, type Business } from "@/services/businessService";
 
 interface Event {
   id: number;
@@ -59,6 +60,12 @@ const EventDiscoveryApp: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("restaurants");
   const { places: googlePlaces, loading, error, searchByQuery, getPlacesByCategory, getCurrentLocation } = usePlaces();
+
+  // Businesses state
+  const [businesses, setBusinesses] = useState<Business[]>([]);
+  const [businessesLoading, setBusinessesLoading] = useState(false);
+  const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
+  const [showBusinessDetails, setShowBusinessDetails] = useState(false);
 
   // Popular categories for Abuja
   const categories = [
@@ -128,6 +135,19 @@ const EventDiscoveryApp: React.FC = () => {
     }
   };
 
+  // Load businesses for Collections tab
+  const loadBusinesses = async () => {
+    setBusinessesLoading(true);
+    try {
+      const data = await BusinessService.getBusinesses({ limit: 50 });
+      setBusinesses(data);
+    } catch (error) {
+      console.error('Error loading businesses:', error);
+    } finally {
+      setBusinessesLoading(false);
+    }
+  };
+
   // Load default category on component mount and handle URL search params
   useEffect(() => {
     const searchFromUrl = searchParams.get('search');
@@ -137,6 +157,8 @@ const EventDiscoveryApp: React.FC = () => {
     } else {
       handleCategoryChange("restaurants");
     }
+    // Load businesses for Collections
+    loadBusinesses();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams.get('search')]);
 
@@ -329,13 +351,126 @@ const EventDiscoveryApp: React.FC = () => {
 
           <TabsContent value="collections" className="space-y-6">
             <h2 className="text-2xl font-semibold text-text-primary mb-6">
-              Top Collections
+              All Businesses
             </h2>
-            <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-lg">
-              <Store className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No Collections Available</h3>
-              <p className="text-gray-600 dark:text-gray-400">Collections will appear here soon</p>
-            </div>
+
+            {businessesLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="flex items-center space-x-2">
+                  <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                  <span className="text-gray-600 dark:text-gray-400">Loading businesses...</span>
+                </div>
+              </div>
+            ) : businesses.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {businesses.map((business) => (
+                  <div
+                    key={business.id}
+                    className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow duration-200 cursor-pointer"
+                    onClick={() => navigate(`/business/${business.id}`)}
+                  >
+                    <div className="relative overflow-hidden bg-gray-100 dark:bg-gray-700">
+                      <img
+                        src={business.image_url || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop'}
+                        alt={business.name}
+                        className="w-full h-48 object-cover rounded-t-lg"
+                        loading="lazy"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement
+                          target.src = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop'
+                        }}
+                      />
+                      {business.verified && (
+                        <Badge className="absolute top-2 right-2 bg-blue-500 hover:bg-blue-600">
+                          Verified
+                        </Badge>
+                      )}
+                    </div>
+
+                    <div className="p-4">
+                      <div className="flex items-start justify-between mb-2">
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 line-clamp-1">
+                          {business.name}
+                        </h3>
+                        {business.rating > 0 && (
+                          <div className="flex items-center space-x-1 text-sm">
+                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                            <span className="font-medium">{business.rating.toFixed(1)}</span>
+                            {business.total_reviews > 0 && (
+                              <span className="text-gray-500 dark:text-gray-400">({business.total_reviews})</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {business.description && (
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">
+                          {business.description}
+                        </p>
+                      )}
+
+                      <div className="flex items-center text-gray-600 dark:text-gray-400 mb-2">
+                        <MapPin className="w-4 h-4 mr-1 flex-shrink-0" />
+                        <span className="text-sm line-clamp-1">{business.address}, {business.city}</span>
+                      </div>
+
+                      <div className="mb-3">
+                        <Badge variant="secondary" className="text-xs">
+                          {business.category}
+                        </Badge>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex space-x-2">
+                          {business.phone && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                window.open(`tel:${business.phone}`);
+                              }}
+                            >
+                              <Phone className="w-4 h-4" />
+                            </Button>
+                          )}
+                          {business.website && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                window.open(business.website, '_blank');
+                              }}
+                            >
+                              <Globe className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/business/${business.id}`);
+                          }}
+                          className="bg-blue-600 hover:bg-blue-700"
+                        >
+                          View Details
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <Store className="w-16 h-16 mx-auto text-gray-400 mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No Businesses Available</h3>
+                <p className="text-gray-600 dark:text-gray-400">Businesses will appear here soon</p>
+              </div>
+            )}
           </TabsContent>
         </Tabs>
 

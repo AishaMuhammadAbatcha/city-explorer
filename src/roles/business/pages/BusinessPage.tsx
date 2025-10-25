@@ -1,12 +1,15 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
-import { Phone, Mail, Globe, MapPin, Star, CheckCircle } from "lucide-react";
+import { Phone, Mail, Globe, MapPin, Star, CheckCircle, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BusinessService, type Business } from "@/services/businessService";
+import { ReviewService } from "@/services/reviewService";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import EventsManagement from "@/components/business/EventsManagement";
 import ReviewsManagement from "@/components/business/ReviewsManagement";
+import ReviewModal from "@/components/reviews/ReviewModal";
 
 interface TabType {
   id: string;
@@ -16,9 +19,13 @@ interface TabType {
 const BusinessPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user, profile } = useAuth();
   const [activeTab, setActiveTab] = useState<string>("overview");
   const [business, setBusiness] = useState<Business | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [userReview, setUserReview] = useState<any>(null);
+  const [loadingReview, setLoadingReview] = useState(false);
 
   const tabs: TabType[] = [
     { id: "overview", label: "Overview" },
@@ -29,8 +36,9 @@ const BusinessPage: React.FC = () => {
   useEffect(() => {
     if (id) {
       loadBusiness();
+      checkUserReview();
     }
-  }, [id]);
+  }, [id, user]);
 
   const loadBusiness = async () => {
     try {
@@ -44,6 +52,24 @@ const BusinessPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const checkUserReview = async () => {
+    if (!user || !id) return;
+    try {
+      setLoadingReview(true);
+      const review = await ReviewService.getUserReviewForBusiness(id);
+      setUserReview(review);
+    } catch (error) {
+      console.error("Error checking user review:", error);
+    } finally {
+      setLoadingReview(false);
+    }
+  };
+
+  const handleReviewSubmitted = () => {
+    loadBusiness(); // Reload to update rating
+    checkUserReview(); // Reload user's review
   };
 
   const handleTabClick = (tabId: string): void => {
@@ -149,6 +175,17 @@ const BusinessPage: React.FC = () => {
             <Button onClick={handleDirectionsClick}>
               <span>Get Directions</span>
             </Button>
+            {/* Show Write Review button only for individual users (not business owners) */}
+            {user && profile?.role === 'individual' && (
+              <Button
+                onClick={() => setShowReviewModal(true)}
+                className="bg-blue-600 hover:bg-blue-700"
+                disabled={loadingReview}
+              >
+                <Edit className="w-4 h-4 mr-2" />
+                {userReview ? 'Edit Review' : 'Write Review'}
+              </Button>
+            )}
           </div>
         </div>
 
@@ -320,6 +357,22 @@ const BusinessPage: React.FC = () => {
         )}
       </div>
     </div>
+
+    {/* Review Modal */}
+    {business && (
+      <ReviewModal
+        isOpen={showReviewModal}
+        onClose={() => setShowReviewModal(false)}
+        businessId={business.id}
+        businessName={business.name}
+        onReviewSubmitted={handleReviewSubmitted}
+        existingReview={userReview ? {
+          id: userReview.id,
+          rating: userReview.rating,
+          comment: userReview.comment || ''
+        } : undefined}
+      />
+    )}
     </div>
   );
 };
