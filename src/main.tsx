@@ -4,7 +4,13 @@ import "./index.css";
 import App from "./App.tsx";
 import { BrowserRouter } from "react-router";
 import { ThemeProvider } from "next-themes";
+import { APIProvider } from "@vis.gl/react-google-maps";
 import { AuthProvider } from "./contexts/AuthContext.tsx";
+
+const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
+if (!googleMapsApiKey) {
+  console.warn("VITE_GOOGLE_MAPS_API_KEY is missing — inline maps and place markers will not render.");
+}
 
 // Add error handling for deployment debugging
 window.addEventListener('error', (e) => {
@@ -44,7 +50,9 @@ try {
           disableTransitionOnChange
         >
           <AuthProvider>
-            <App />
+            <APIProvider apiKey={googleMapsApiKey ?? ""}>
+              <App />
+            </APIProvider>
           </AuthProvider>
         </ThemeProvider>
       </BrowserRouter>
