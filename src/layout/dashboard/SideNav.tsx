@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Search, Settings, LogOut, Map, History, Bookmark } from "lucide-react";
+import { ChevronLeft, Search, Settings, LogOut, Map, History, Bookmark, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { NavLink, useLocation, useNavigate } from "react-router";
@@ -48,6 +48,7 @@ function SideNav({ drawerWidth, handleDrawerToggle, mobileOpen }: Props) {
     { text: "Search", link: "/search", icon: Search },
     { text: "History", link: "/history", icon: History },
     { text: "Saved", link: "/saved", icon: Bookmark },
+    { text: "Usage", link: "/usage", icon: BarChart3 },
     { text: "Settings", link: "/settings", icon: Settings },
   ];
 
