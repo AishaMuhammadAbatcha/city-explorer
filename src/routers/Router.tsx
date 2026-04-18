@@ -9,6 +9,7 @@ import Search from "@/pages/Search";
 import Settings from "@/pages/Settings";
 import History from "@/pages/History";
 import Saved from "@/pages/Saved";
+import ShareView from "@/pages/ShareView";
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
@@ -65,6 +66,7 @@ const Router = () => {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/share/:slug" element={<ShareView />} />
       </Route>
 
       {/* Protected routes */}
