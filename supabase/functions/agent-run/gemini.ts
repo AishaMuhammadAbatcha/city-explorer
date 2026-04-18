@@ -51,13 +51,21 @@ interface GeminiCandidate {
   finishReason?: string
 }
 
+export interface GeminiUsageMetadata {
+  promptTokenCount?: number
+  candidatesTokenCount?: number
+  totalTokenCount?: number
+}
+
 interface GeminiResponsePayload {
   candidates?: GeminiCandidate[]
   error?: { message?: string; status?: string }
   promptFeedback?: unknown
+  usageMetadata?: GeminiUsageMetadata
 }
 
-const MODEL = 'gemini-2.0-flash'
+export const GEMINI_MODEL = 'gemini-2.0-flash'
+const MODEL = GEMINI_MODEL
 const BASE = 'https://generativelanguage.googleapis.com/v1beta/models'
 
 function apiKey(): string {
@@ -78,6 +86,10 @@ export async function callGemini(request: GeminiRequest): Promise<GeminiResponse
     throw new Error(`Gemini generateContent failed: ${res.status} ${json.error?.message ?? res.statusText}`)
   }
   return json
+}
+
+export function extractUsage(resp: GeminiResponsePayload): GeminiUsageMetadata {
+  return resp.usageMetadata ?? {}
 }
 
 // streamGemini returns an async iterable of text chunks as they

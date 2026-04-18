@@ -1,29 +1,41 @@
-// TR-ACE agent-run edge function (Phase 3 — multi-step ReAct loop).
+// TR-ACE agent-run edge function (Phase 7 — hardening).
 //
 // Flow per request:
 //   1. Verify user JWT, extract user_id.
-//   2. Create-or-reuse a conversation, insert the user message.
-//   3. Open an SSE stream back to the client.
-//   4. Insert an empty assistant placeholder message so tool_calls
-//      can be FK'd as we go.
-//   5. Loop up to 5 iterations (ReAct):
+//   2. Call get_daily_usage RPC. If the caller is over the rolling-
+//      24h cost or request cap, emit an SSE `error` with a machine-
+//      readable code + reset_at and close the stream (no work done,
+//      no tokens burned).
+//   3. Create-or-reuse a conversation, insert the user message.
+//   4. Open an SSE stream back to the client.
+//   5. Insert an empty assistant placeholder message so tool_calls
+//      and llm_calls can FK to it as we go.
+//   6. Loop up to 5 iterations (ReAct):
 //      - Emit step_start.
-//      - Call Gemini with current contents + tool declarations.
-//      - If the response carries a functionCall, check the time /
-//        cost circuit breakers, execute the tool, log the tool_call
-//        row with step_number, append the functionCall +
-//        functionResponse to contents, accumulate any typed cards.
+//      - Call Gemini with current contents + tool declarations, log
+//        an llm_calls row (tokens + cost + duration).
+//      - If the response carries a functionCall, check the per-turn
+//        and per-day budgets, execute the tool. On tool failure we
+//        log a tool_calls row with status='error', emit a
+//        tool_call_end carrying {error, message}, feed the same back
+//        to Gemini as the functionResponse, and continue the loop.
 //      - Otherwise break out with the final text.
-//   6. Chunk the final text as tokens, dedupe cards, update the
+//   7. Chunk the final text as tokens, dedupe cards, update the
 //      placeholder message with content + citations + cards, emit
 //      `done`.
 //
-// Circuit breakers:
+// Per-turn circuit breakers (Phase 3):
 //   - 5 iteration hard cap.
 //   - 30 s wall clock.
 //   - $0.05 accumulated tool cost.
 //
-// Costs are logged only (Phase 7 will enforce per-user daily caps).
+// Per-user rolling-24h caps (Phase 7):
+//   - $0.10 total cost (tool_calls + llm_calls).
+//   - 50 user messages.
+//
+// Both layers coexist: the daily cap is checked up front and is also
+// threaded through the turn so the final LLM synthesis won't be made
+// if it would push the user past budget.
 
 // @ts-expect-error Deno remote module, resolved at runtime.
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
@@ -34,6 +46,8 @@ import {
   callGemini,
   extractFunctionCall,
   extractText,
+  extractUsage,
+  GEMINI_MODEL,
   type GeminiContent,
   type GeminiRequest,
 } from './gemini.ts'
@@ -73,6 +87,18 @@ declare const Deno: { env: { get(key: string): string | undefined }; serve(handl
 const MAX_ITERATIONS = 5
 const MAX_WALL_CLOCK_MS = 30_000
 const MAX_TURN_COST_USD = 0.05
+
+// Phase 7 — per-user rolling-24h caps. Enforced at the top of the
+// request (hard deny) AND tracked across the turn (truncate when the
+// remaining budget would be exceeded by the next estimated call).
+const DAILY_COST_CAP_USD = 0.10
+const DAILY_REQUEST_CAP = 50
+
+// Phase 7 — Gemini pricing constants (per 1K tokens, USD). Conservative
+// public-tier numbers for gemini-2.0-flash. Used to cost each LLM
+// invocation and feed the same daily cap that covers tool_calls.
+const GEMINI_INPUT_COST_PER_1K = 0.0001
+const GEMINI_OUTPUT_COST_PER_1K = 0.0004
 
 const SYSTEM_INSTRUCTION = `You are TR-ACE, an agentic search assistant that helps users find things online — products, places, facts, articles, videos.
 
@@ -161,6 +187,162 @@ function json(status: number, body: unknown, origin: string | null): Response {
     status,
     headers: { ...corsHeaders(origin), 'Content-Type': 'application/json' },
   })
+}
+
+// ---------------------------------------------------------------------
+// Phase 7 helpers — daily caps + LLM logging.
+// ---------------------------------------------------------------------
+
+interface DailyUsage {
+  total_cost_usd: number
+  message_count: number
+}
+
+async function fetchDailyUsage(admin: SupabaseClient, userId: string): Promise<DailyUsage> {
+  const { data, error } = await admin.rpc('get_daily_usage', { p_user_id: userId })
+  if (error) {
+    console.error('get_daily_usage rpc failed:', error.message)
+    return { total_cost_usd: 0, message_count: 0 }
+  }
+  const row = Array.isArray(data) ? data[0] : data
+  if (!row) return { total_cost_usd: 0, message_count: 0 }
+  return {
+    total_cost_usd: Number((row as { total_cost_usd?: unknown }).total_cost_usd ?? 0) || 0,
+    message_count: Number((row as { message_count?: unknown }).message_count ?? 0) || 0,
+  }
+}
+
+// Reset timestamp for the cap: 24h after the oldest qualifying record
+// inside the current 24h window. For the rate cap we use messages; for
+// the cost cap we pick the earlier of the oldest tool_calls row and
+// the oldest llm_calls row. Falls back to now+24h on any error so the
+// client always has a valid ISO timestamp.
+async function userConversationIds(admin: SupabaseClient, userId: string): Promise<string[]> {
+  const { data } = await admin.from('conversations').select('id').eq('user_id', userId)
+  return ((data as { id: string }[] | null) ?? []).map((r) => r.id)
+}
+
+async function userMessageIds(admin: SupabaseClient, userId: string): Promise<string[]> {
+  const convoIds = await userConversationIds(admin, userId)
+  if (convoIds.length === 0) return []
+  const { data } = await admin.from('messages').select('id').in('conversation_id', convoIds)
+  return ((data as { id: string }[] | null) ?? []).map((r) => r.id)
+}
+
+async function computeRateResetAt(admin: SupabaseClient, userId: string): Promise<string> {
+  const windowStart = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+  try {
+    const convoIds = await userConversationIds(admin, userId)
+    if (convoIds.length > 0) {
+      const { data } = await admin
+        .from('messages')
+        .select('created_at')
+        .in('conversation_id', convoIds)
+        .eq('role', 'user')
+        .gt('created_at', windowStart)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle()
+      const oldest = (data as { created_at?: string } | null)?.created_at
+      if (oldest) return new Date(new Date(oldest).getTime() + 24 * 60 * 60 * 1000).toISOString()
+    }
+  } catch (err) {
+    console.error('computeRateResetAt failed:', err instanceof Error ? err.message : String(err))
+  }
+  return new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+}
+
+async function computeCostResetAt(admin: SupabaseClient, userId: string): Promise<string> {
+  const windowStart = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+  const candidates: string[] = []
+  try {
+    const messageIds = await userMessageIds(admin, userId)
+    if (messageIds.length > 0) {
+      const { data: tc } = await admin
+        .from('tool_calls')
+        .select('created_at')
+        .in('message_id', messageIds)
+        .gt('created_at', windowStart)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle()
+      const t = (tc as { created_at?: string } | null)?.created_at
+      if (t) candidates.push(t)
+
+      const { data: lc } = await admin
+        .from('llm_calls')
+        .select('created_at')
+        .in('message_id', messageIds)
+        .gt('created_at', windowStart)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle()
+      const l = (lc as { created_at?: string } | null)?.created_at
+      if (l) candidates.push(l)
+    }
+  } catch (err) {
+    console.error('computeCostResetAt failed:', err instanceof Error ? err.message : String(err))
+  }
+  if (candidates.length === 0) return new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+  const oldest = candidates.sort()[0]
+  return new Date(new Date(oldest).getTime() + 24 * 60 * 60 * 1000).toISOString()
+}
+
+function geminiCost(inputTokens: number, outputTokens: number): number {
+  return (
+    (inputTokens / 1000) * GEMINI_INPUT_COST_PER_1K +
+    (outputTokens / 1000) * GEMINI_OUTPUT_COST_PER_1K
+  )
+}
+
+interface LoggedGeminiCall {
+  resp: Awaited<ReturnType<typeof callGemini>>
+  input_tokens: number
+  output_tokens: number
+  cost_usd: number
+  duration_ms: number
+}
+
+async function callGeminiLogged(
+  admin: SupabaseClient,
+  placeholderId: string,
+  iteration: number | null,
+  request: GeminiRequest,
+): Promise<LoggedGeminiCall> {
+  const started = Date.now()
+  let resp: Awaited<ReturnType<typeof callGemini>> | null = null
+  let status: 'success' | 'error' = 'success'
+  let errorMessage: string | null = null
+  try {
+    resp = await callGemini(request)
+  } catch (err) {
+    status = 'error'
+    errorMessage = err instanceof Error ? err.message : String(err)
+  }
+  const duration_ms = Date.now() - started
+  const usage = resp ? extractUsage(resp) : {}
+  const input_tokens = usage.promptTokenCount ?? 0
+  const output_tokens = usage.candidatesTokenCount ?? 0
+  const cost_usd = geminiCost(input_tokens, output_tokens)
+
+  const { error: insErr } = await admin.from('llm_calls').insert({
+    message_id: placeholderId,
+    model: GEMINI_MODEL,
+    input_tokens,
+    output_tokens,
+    duration_ms,
+    cost_usd,
+    iteration,
+    status,
+    error_message: errorMessage?.slice(0, 500) ?? null,
+  })
+  if (insErr) console.error('failed to log llm_call:', insErr.message)
+
+  if (status === 'error' || !resp) {
+    throw new Error(errorMessage ?? 'Gemini call failed')
+  }
+
+  return { resp, input_tokens, output_tokens, cost_usd, duration_ms }
 }
 
 async function parseBody(req: Request): Promise<RequestBody | null> {
@@ -462,70 +644,9 @@ Deno.serve(async (req: Request) => {
   const body = await parseBody(req)
   if (!body) return json(400, { error: 'invalid body' }, origin)
 
-  let conversationId = body.conversation_id
-  if (!conversationId) {
-    const title = body.message.slice(0, 60)
-    const { data: convo, error: convoErr } = await userClient
-      .from('conversations')
-      .insert({ user_id: userId, title })
-      .select('id')
-      .single()
-    if (convoErr || !convo) {
-      return json(500, { error: `failed to create conversation: ${convoErr?.message ?? 'unknown'}` }, origin)
-    }
-    conversationId = convo.id as string
-  } else {
-    await userClient.from('conversations').update({ updated_at: new Date().toISOString() }).eq('id', conversationId)
-  }
-
-  const { error: userMsgErr } = await userClient.from('messages').insert({
-    conversation_id: conversationId,
-    role: 'user',
-    content: body.message,
-  })
-  if (userMsgErr) {
-    return json(500, { error: `failed to persist user message: ${userMsgErr.message}` }, origin)
-  }
-
-  // Load prior turns for context.
-  const { data: priorRows } = await userClient
-    .from('messages')
-    .select('role, content, cards, created_at')
-    .eq('conversation_id', conversationId)
-    .order('created_at', { ascending: true })
-    .limit(20)
-
-  // Phase 5 follow-up context: append a one-line card summary after each
-  // assistant message that produced cards, so Gemini sees "what you
-  // already showed them" when they say things like "show me more like
-  // that". The summary is transient (only passed to Gemini, never
-  // written back to the DB).
-  const history: GeminiContent[] = (priorRows ?? [])
-    .filter((m) => m.role === 'user' || m.role === 'assistant')
-    .slice(-10)
-    .map((m) => {
-      const role = m.role === 'assistant' ? ('model' as const) : ('user' as const)
-      let text = m.content
-      if (m.role === 'assistant' && Array.isArray(m.cards) && m.cards.length > 0) {
-        const summary = summarisePriorCards(m.cards as PriorCard[])
-        if (summary.length > 0) text = `${text}\n${summary}`
-      }
-      return { role, parts: [{ text }] }
-    })
-
-  // Phase 5 personalization: read the user's prefs and build a
-  // system-prompt block that mentions only the fields they've actually
-  // set. Everything null is skipped.
-  const { data: prefsRow } = await adminClient
-    .from('user_preferences')
-    .select('default_location, currency, search_radius_m, price_range_min, price_range_max')
-    .eq('user_id', userId)
-    .maybeSingle()
-
-  const prefsBlock = prefsRow ? buildPrefsBlock(prefsRow as UserPrefsRow) : ''
-  const systemPromptText =
-    prefsBlock.length > 0 ? `${SYSTEM_INSTRUCTION}\n\n${prefsBlock}` : SYSTEM_INSTRUCTION
-
+  // Open the SSE stream up front so cap errors can be delivered as SSE
+  // events (the client renders them as friendly toasts with countdown
+  // text rather than a raw 4xx).
   const sse = createSSEStream()
   const resp = new Response(sse.stream, {
     status: 200,
@@ -535,9 +656,104 @@ Deno.serve(async (req: Request) => {
   const runAgent = async () => {
     const emit = (e: SSEEvent) => sse.emit(e)
     try {
-      emit({ type: 'conversation_id', id: conversationId! })
+      // ------------------------------------------------------------
+      // Phase 7 — daily cap pre-check. One RPC, hard deny on exceed.
+      // ------------------------------------------------------------
+      const usage = await fetchDailyUsage(adminClient, userId)
 
-      // Placeholder assistant row so tool_calls can FK to it as we go.
+      if (usage.message_count >= DAILY_REQUEST_CAP) {
+        const reset_at = await computeRateResetAt(adminClient, userId)
+        emit({
+          type: 'error',
+          code: 'daily_rate_cap',
+          reset_at,
+          message: 'Daily search limit reached.',
+        })
+        return
+      }
+      if (usage.total_cost_usd >= DAILY_COST_CAP_USD) {
+        const reset_at = await computeCostResetAt(adminClient, userId)
+        emit({
+          type: 'error',
+          code: 'daily_cost_cap',
+          reset_at,
+          message: 'Daily cost limit reached.',
+        })
+        return
+      }
+
+      // Remaining daily budget — the turn is allowed to spend up to
+      // this much more before we truncate.
+      let runningDailyCost = usage.total_cost_usd
+
+      // ------------------------------------------------------------
+      // Create/reuse conversation and persist the user message.
+      // ------------------------------------------------------------
+      let conversationId = body.conversation_id
+      if (!conversationId) {
+        const title = body.message.slice(0, 60)
+        const { data: convo, error: convoErr } = await userClient
+          .from('conversations')
+          .insert({ user_id: userId, title })
+          .select('id')
+          .single()
+        if (convoErr || !convo) {
+          throw new Error(`failed to create conversation: ${convoErr?.message ?? 'unknown'}`)
+        }
+        conversationId = convo.id as string
+      } else {
+        await userClient
+          .from('conversations')
+          .update({ updated_at: new Date().toISOString() })
+          .eq('id', conversationId)
+      }
+
+      const { error: userMsgErr } = await userClient.from('messages').insert({
+        conversation_id: conversationId,
+        role: 'user',
+        content: body.message,
+      })
+      if (userMsgErr) {
+        throw new Error(`failed to persist user message: ${userMsgErr.message}`)
+      }
+
+      emit({ type: 'conversation_id', id: conversationId })
+
+      // ------------------------------------------------------------
+      // Prior-turn context + user preferences (Phase 5).
+      // ------------------------------------------------------------
+      const { data: priorRows } = await userClient
+        .from('messages')
+        .select('role, content, cards, created_at')
+        .eq('conversation_id', conversationId)
+        .order('created_at', { ascending: true })
+        .limit(20)
+
+      const history: GeminiContent[] = (priorRows ?? [])
+        .filter((m) => m.role === 'user' || m.role === 'assistant')
+        .slice(-10)
+        .map((m) => {
+          const role = m.role === 'assistant' ? ('model' as const) : ('user' as const)
+          let text = m.content
+          if (m.role === 'assistant' && Array.isArray(m.cards) && m.cards.length > 0) {
+            const summary = summarisePriorCards(m.cards as PriorCard[])
+            if (summary.length > 0) text = `${text}\n${summary}`
+          }
+          return { role, parts: [{ text }] }
+        })
+
+      const { data: prefsRow } = await adminClient
+        .from('user_preferences')
+        .select('default_location, currency, search_radius_m, price_range_min, price_range_max')
+        .eq('user_id', userId)
+        .maybeSingle()
+
+      const prefsBlock = prefsRow ? buildPrefsBlock(prefsRow as UserPrefsRow) : ''
+      const systemPromptText =
+        prefsBlock.length > 0 ? `${SYSTEM_INSTRUCTION}\n\n${prefsBlock}` : SYSTEM_INSTRUCTION
+
+      // Placeholder assistant row so tool_calls + llm_calls can FK to
+      // it as we go.
       const { data: placeholder, error: placeholderErr } = await adminClient
         .from('messages')
         .insert({
@@ -567,13 +783,18 @@ Deno.serve(async (req: Request) => {
         },
       ]
 
+      // Worst-case per-call cost is places_search. Used to decide
+      // whether to even attempt the next tool given the remaining
+      // daily budget.
+      const MAX_TOOL_COST = PLACES_SEARCH_COST_USD
+
       let contents: GeminiContent[] = history
       const cards: Card[] = []
       let citations: Citation[] = []
       let totalCost = 0
       let iteration = 0
       let finalText = ''
-      let stopReason: 'text' | 'iteration_cap' | 'circuit_breaker' = 'text'
+      let stopReason: 'text' | 'iteration_cap' | 'circuit_breaker' | 'daily_budget' = 'text'
       const startTime = Date.now()
 
       while (iteration < MAX_ITERATIONS) {
@@ -586,19 +807,29 @@ Deno.serve(async (req: Request) => {
           tools,
           contents,
         }
-        const geminiResp = await callGemini(reqPayload)
-        const fcall = extractFunctionCall(geminiResp)
+        const logged = await callGeminiLogged(adminClient, placeholderId, iteration, reqPayload)
+        runningDailyCost += logged.cost_usd
+        const fcall = extractFunctionCall(logged.resp)
 
         if (!fcall) {
-          finalText = extractText(geminiResp)
+          finalText = extractText(logged.resp)
           stopReason = 'text'
           break
         }
 
-        // Circuit breakers before running the tool.
+        // Per-turn circuit breakers (Phase 3).
         if (Date.now() - startTime > MAX_WALL_CLOCK_MS || totalCost > MAX_TURN_COST_USD) {
           stopReason = 'circuit_breaker'
-          finalText = extractText(geminiResp)
+          finalText = extractText(logged.resp)
+          break
+        }
+
+        // Per-user daily budget (Phase 7). If the worst-case next tool
+        // would push us over, truncate this turn cleanly so the user
+        // still gets whatever we've already gathered.
+        if (runningDailyCost + MAX_TOOL_COST > DAILY_COST_CAP_USD) {
+          stopReason = 'daily_budget'
+          finalText = extractText(logged.resp)
           break
         }
 
@@ -684,23 +915,35 @@ Deno.serve(async (req: Request) => {
             default:
               status = 'error'
               errorMessage = `unknown tool: ${fcall.name}`
-              toolOutput = { error: errorMessage }
+              toolOutput = { error: true, message: errorMessage }
           }
         } catch (err) {
+          // Phase 7 — tool failure is never fatal. We record it, tell
+          // the UI, feed a structured error back to Gemini so the ReAct
+          // loop can try a different tool, and keep going.
           status = 'error'
           errorMessage = err instanceof Error ? err.message : String(err)
-          toolOutput = { error: errorMessage }
+          toolOutput = {
+            error: true,
+            message: `Tool failed: ${fcall.name}. Details: ${errorMessage?.slice(0, 200) ?? ''}`,
+          }
+          costThisCall = 0
         }
 
         const duration = Date.now() - started
         totalCost += costThisCall
+        runningDailyCost += costThisCall
 
+        const isError = status !== 'success'
         emit({
           type: 'tool_call_end',
           tool: fcall.name,
           output: toolOutput,
           duration_ms: duration,
           summary: summariseToolOutput(fcall.name, toolOutput),
+          ...(isError
+            ? { error: true, error_message: errorMessage?.slice(0, 200) ?? undefined }
+            : {}),
         })
 
         const { error: tcErr } = await adminClient.from('tool_calls').insert({
@@ -711,7 +954,7 @@ Deno.serve(async (req: Request) => {
           duration_ms: duration,
           cost_usd: costThisCall,
           status,
-          error_message: errorMessage,
+          error_message: errorMessage?.slice(0, 500) ?? null,
           step_number: iteration,
         })
         if (tcErr) {
@@ -741,31 +984,35 @@ Deno.serve(async (req: Request) => {
         // loop again — Gemini now sees the tool response.
       }
 
-      // If we broke because we exhausted iterations without a text reply,
-      // ask Gemini once more with the accumulated context for the final
-      // synthesis (no tools this time, force a text answer).
+      // If we broke without a text reply, ask Gemini once more with the
+      // accumulated context for the final synthesis (no tools this
+      // time, force a text answer) — but only if the daily budget still
+      // allows a small Gemini call.
       if (stopReason !== 'text' && finalText.length === 0) {
-        try {
-          const synth = await callGemini({
-            systemInstruction: {
-              role: 'system',
-              parts: [{ text: systemPromptText }],
-            },
-            contents: [
-              ...contents,
-              {
-                role: 'user',
-                parts: [
-                  {
-                    text: 'Stop calling tools and write the final answer now, grounded in the tool outputs you already have.',
-                  },
-                ],
+        if (runningDailyCost < DAILY_COST_CAP_USD) {
+          try {
+            const synth = await callGeminiLogged(adminClient, placeholderId, null, {
+              systemInstruction: {
+                role: 'system',
+                parts: [{ text: systemPromptText }],
               },
-            ],
-          })
-          finalText = extractText(synth)
-        } catch (err) {
-          console.error('final synthesis failed:', err instanceof Error ? err.message : String(err))
+              contents: [
+                ...contents,
+                {
+                  role: 'user',
+                  parts: [
+                    {
+                      text: 'Stop calling tools and write the final answer now, grounded in the tool outputs you already have.',
+                    },
+                  ],
+                },
+              ],
+            })
+            runningDailyCost += synth.cost_usd
+            finalText = extractText(synth.resp)
+          } catch (err) {
+            console.error('final synthesis failed:', err instanceof Error ? err.message : String(err))
+          }
         }
       }
 
@@ -775,6 +1022,9 @@ Deno.serve(async (req: Request) => {
         finalText +=
           (finalText.length > 0 ? '\n\n' : '') +
           '_(Stopped early due to time/cost budget — partial results.)_'
+      } else if (stopReason === 'daily_budget') {
+        finalText +=
+          (finalText.length > 0 ? '\n\n' : '') + '_(Stopped — daily budget reached.)_'
       }
 
       if (finalText.length === 0) {
@@ -803,7 +1053,7 @@ Deno.serve(async (req: Request) => {
     } catch (err) {
       const detail = err instanceof Error ? err.message : String(err)
       console.error('agent-run error:', detail)
-      emit({ type: 'error', message: 'agent failed — see server logs' })
+      emit({ type: 'error', code: 'internal', message: 'agent failed — see server logs' })
     } finally {
       sse.close()
     }
