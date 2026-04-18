@@ -8,6 +8,7 @@ import { SaveButton } from './SaveButton'
 interface PlaceCardProps {
   card: PlaceCardType
   sourceMessageId?: string
+  readOnly?: boolean
 }
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined
@@ -25,7 +26,7 @@ function Stars({ rating, count }: { rating?: number; count?: number }) {
   )
 }
 
-export function PlaceCard({ card, sourceMessageId }: PlaceCardProps) {
+export function PlaceCard({ card, sourceMessageId, readOnly = false }: PlaceCardProps) {
   const { request: requestLocation } = useGeolocation()
 
   const handleDirections = async () => {
@@ -42,7 +43,7 @@ export function PlaceCard({ card, sourceMessageId }: PlaceCardProps) {
 
   return (
     <div className="relative flex flex-col rounded-xl border border-border bg-card p-3 gap-2 h-full">
-      <SaveButton card={card} sourceMessageId={sourceMessageId} />
+      {!readOnly && <SaveButton card={card} sourceMessageId={sourceMessageId} />}
       {MAPS_ENABLED && (
         <Map
           style={{ width: '100%', height: '180px', borderRadius: '0.5rem' }}

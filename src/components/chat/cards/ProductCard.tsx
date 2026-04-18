@@ -7,9 +7,10 @@ import { SaveButton } from './SaveButton'
 interface ProductCardProps {
   card: ProductCardType
   sourceMessageId?: string
+  readOnly?: boolean
 }
 
-export function ProductCard({ card, sourceMessageId }: ProductCardProps) {
+export function ProductCard({ card, sourceMessageId, readOnly = false }: ProductCardProps) {
   const [imageFailed, setImageFailed] = useState(false)
   const showImage = !!card.image && !imageFailed
   const contactHref = card.seller_contact
@@ -20,7 +21,7 @@ export function ProductCard({ card, sourceMessageId }: ProductCardProps) {
 
   return (
     <div className="relative flex flex-col rounded-xl border border-border bg-card overflow-hidden h-full">
-      <SaveButton card={card} sourceMessageId={sourceMessageId} />
+      {!readOnly && <SaveButton card={card} sourceMessageId={sourceMessageId} />}
       <div className="relative aspect-square bg-muted">
         {showImage ? (
           <img

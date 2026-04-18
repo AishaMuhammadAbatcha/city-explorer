@@ -4,15 +4,16 @@ import { SaveButton } from './SaveButton'
 interface ArticleCardProps {
   card: ArticleCardType
   sourceMessageId?: string
+  readOnly?: boolean
 }
 
-export function ArticleCard({ card, sourceMessageId }: ArticleCardProps) {
+export function ArticleCard({ card, sourceMessageId, readOnly = false }: ArticleCardProps) {
   const favicon = card.display_link
     ? `https://www.google.com/s2/favicons?domain=${encodeURIComponent(card.display_link)}&sz=64`
     : ''
   return (
     <div className="relative h-full">
-      <SaveButton card={card} sourceMessageId={sourceMessageId} />
+      {!readOnly && <SaveButton card={card} sourceMessageId={sourceMessageId} />}
     <a
       href={card.url}
       target="_blank"

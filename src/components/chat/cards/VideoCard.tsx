@@ -5,6 +5,7 @@ import { SaveButton } from './SaveButton'
 interface VideoCardProps {
   card: VideoCardType
   sourceMessageId?: string
+  readOnly?: boolean
 }
 
 function relativeTime(iso?: string): string {
@@ -19,10 +20,10 @@ function relativeTime(iso?: string): string {
   return `${Math.round(diff / (365 * day))}y ago`
 }
 
-export function VideoCard({ card, sourceMessageId }: VideoCardProps) {
+export function VideoCard({ card, sourceMessageId, readOnly = false }: VideoCardProps) {
   return (
     <div className="relative h-full">
-      <SaveButton card={card} sourceMessageId={sourceMessageId} />
+      {!readOnly && <SaveButton card={card} sourceMessageId={sourceMessageId} />}
     <a
       href={card.url}
       target="_blank"

@@ -6,9 +6,10 @@ import { CardGrid } from './cards'
 interface MessageBubbleProps {
   message: Message
   pending?: boolean
+  readOnly?: boolean
 }
 
-export function MessageBubble({ message, pending }: MessageBubbleProps) {
+export function MessageBubble({ message, pending, readOnly = false }: MessageBubbleProps) {
   if (message.role === 'user') {
     return (
       <div className="flex justify-end">
@@ -33,7 +34,7 @@ export function MessageBubble({ message, pending }: MessageBubbleProps) {
       </div>
       {message.cards.length > 0 && (
         <div className="w-full">
-          <CardGrid cards={message.cards} sourceMessageId={message.id} />
+          <CardGrid cards={message.cards} sourceMessageId={message.id} readOnly={readOnly} />
         </div>
       )}
     </div>

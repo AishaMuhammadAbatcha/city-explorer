@@ -7,11 +7,12 @@ import { ProductCard } from './ProductCard'
 interface CardGridProps {
   cards: Card[]
   sourceMessageId?: string
+  readOnly?: boolean
 }
 
 const KIND_ORDER: Card['kind'][] = ['place', 'video', 'product', 'article']
 
-export function CardGrid({ cards, sourceMessageId }: CardGridProps) {
+export function CardGrid({ cards, sourceMessageId, readOnly = false }: CardGridProps) {
   if (cards.length === 0) return null
 
   const grouped: Record<Card['kind'], Card[]> = {
@@ -37,6 +38,7 @@ export function CardGrid({ cards, sourceMessageId }: CardGridProps) {
                     key={`${c.kind}:${c.id}`}
                     card={c}
                     sourceMessageId={sourceMessageId}
+                    readOnly={readOnly}
                   />
                 )
               case 'video':
@@ -45,6 +47,7 @@ export function CardGrid({ cards, sourceMessageId }: CardGridProps) {
                     key={`${c.kind}:${c.id}`}
                     card={c}
                     sourceMessageId={sourceMessageId}
+                    readOnly={readOnly}
                   />
                 )
               case 'article':
@@ -53,6 +56,7 @@ export function CardGrid({ cards, sourceMessageId }: CardGridProps) {
                     key={`${c.kind}:${c.id}`}
                     card={c}
                     sourceMessageId={sourceMessageId}
+                    readOnly={readOnly}
                   />
                 )
               case 'product':
@@ -61,6 +65,7 @@ export function CardGrid({ cards, sourceMessageId }: CardGridProps) {
                     key={`${c.kind}:${c.id}`}
                     card={c}
                     sourceMessageId={sourceMessageId}
+                    readOnly={readOnly}
                   />
                 )
             }
