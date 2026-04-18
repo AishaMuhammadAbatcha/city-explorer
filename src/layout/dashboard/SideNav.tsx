@@ -1,24 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  ChevronLeft,
-  Home,
-  Compass,
-  Bot,
-  Map,
-  User,
-  Calendar,
-  Tag,
-  Star,
-  BarChart3,
-  Bell,
-  Settings,
-  LogOut
-} from "lucide-react";
+import { ChevronLeft, Search, Settings, LogOut, Map } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
-
-// Import your logo assets
 import { NavLink, useLocation, useNavigate } from "react-router";
 
 type Props = {
@@ -28,19 +12,14 @@ type Props = {
 };
 
 function SideNav({ drawerWidth, handleDrawerToggle, mobileOpen }: Props) {
-  const { signOut, profile } = useAuth();
+  const { signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [isLoading, setIsLoading] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const sideNavRef = useRef<HTMLDivElement>(null);
-  const collapsedWidth = 64; // Width when collapsed (icons only)
-  
-  // Get user role from profile, default to individual if not set
-  const userRole: "admin" | "individual" | "organization" = 
-    profile?.role === 'business' ? 'organization' : 'individual';
+  const collapsedWidth = 64;
 
-  // Handle click outside to close mobile drawer
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -65,111 +44,13 @@ function SideNav({ drawerWidth, handleDrawerToggle, mobileOpen }: Props) {
     setIsLoading(false);
   };
 
-  const adminNavItems = [
-    {
-      text: "Dashboard",
-      link: "/dashboard",
-      icon: Home,
-    },
-    {
-      text: "Add Number",
-      link: "/add-number",
-      icon: Settings,
-    },
+  const navItems = [
+    { text: "Search", link: "/search", icon: Search },
+    { text: "Settings", link: "/settings", icon: Settings },
   ];
 
-  const individualNavItems = [
-    {
-      text: "Home",
-      link: "/dashboard",
-      icon: Home,
-    },
-    {
-      text: "Explore",
-      link: "/explore",
-      icon: Compass,
-    },
-    {
-      text: "Explore AI",
-      link: "/ai",
-      icon: Bot,
-    },
-    {
-      text: "Maps",
-      link: "/maps",
-      icon: Map,
-    },
-    {
-      text: "Profile",
-      link: "/settings",
-      icon: User,
-    },
-  ];
-
-  const organizationNavItems = [
-    {
-      text: "Dashboard",
-      link: "/business/dashboard",
-      icon: Home,
-    },
-    {
-      text: "Events",
-      link: "/business/events",
-      icon: Calendar,
-    },
-    {
-      text: "Deals",
-      link: "/business/deals",
-      icon: Tag,
-    },
-    {
-      text: "Reviews",
-      link: "/business/reviews",
-      icon: Star,
-    },
-    {
-      text: "Analytics",
-      link: "/business/analytics",
-      icon: BarChart3,
-    },
-    {
-      text: "Notifications",
-      link: "/business/notifications",
-      icon: Bell,
-    },
-    {
-      text: "Settings",
-      link: "/business/settings",
-      icon: Settings,
-    },
-  ];
-
-  // const navItems =
-  //   user?.role === "admin"
-  //     ? adminNavItems
-  //     : user?.role === "individual"
-  //     ? individualNavItems
-  //     : organizationNavItems;
-
-  const getUserNavItems = (role: "admin" | "individual" | "organization") => {
-    switch (role) {
-      case "admin":
-        return adminNavItems;
-      case "individual":
-        return individualNavItems;
-      case "organization":
-        return organizationNavItems;
-      default:
-        return organizationNavItems;
-    }
-  };
-
-  const navItems = getUserNavItems(userRole);
-
-  // Mobile drawer (full version)
   const mobileDrawer = (
     <div className="flex flex-col h-full bg-blue-50 dark:bg-gray-800 border-r border-border">
-      {/* Logo section */}
       <div className="p-6 border-b border-border">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
@@ -191,12 +72,10 @@ function SideNav({ drawerWidth, handleDrawerToggle, mobileOpen }: Props) {
         </div>
       </div>
 
-      {/* Navigation */}
       <nav className="flex-1 p-4">
         <ul className="space-y-2">
           {navItems.map((item, index) => {
-            const isActive = location.pathname === item.link ||
-              (item.link !== "/dashboard" && location.pathname.startsWith(item.link));
+            const isActive = location.pathname === item.link;
             const Icon = item.icon;
 
             return (
@@ -220,7 +99,6 @@ function SideNav({ drawerWidth, handleDrawerToggle, mobileOpen }: Props) {
         </ul>
       </nav>
 
-      {/* Logout button */}
       <div className="p-4 border-t border-border">
         <Button
           variant="outline"
@@ -229,20 +107,18 @@ function SideNav({ drawerWidth, handleDrawerToggle, mobileOpen }: Props) {
           onClick={handleLogout}
         >
           <LogOut className="mr-2 h-4 w-4 flex-shrink-0" />
-          <span className="whitespace-nowrap">{isLoading ? "Logging out..." : "Logout"}</span>
+          <span className="whitespace-nowrap">{isLoading ? "Signing out..." : "Sign out"}</span>
         </Button>
       </div>
     </div>
   );
 
-  // Desktop drawer (collapsible version)
   const desktopDrawer = (
-    <div 
+    <div
       className="flex flex-col h-full bg-blue-50 dark:bg-gray-800 border-r border-border transition-all duration-300 ease-in-out sidebar-hover-indicator"
       onMouseEnter={() => setIsExpanded(true)}
       onMouseLeave={() => setIsExpanded(false)}
     >
-      {/* Logo section */}
       <div className={cn(
         "border-b border-border transition-all duration-300 flex items-center",
         isExpanded ? "p-6" : "p-4 justify-center"
@@ -260,15 +136,13 @@ function SideNav({ drawerWidth, handleDrawerToggle, mobileOpen }: Props) {
         </div>
       </div>
 
-      {/* Navigation */}
       <nav className={cn(
         "flex-1 transition-all duration-300",
         isExpanded ? "p-4" : "p-2"
       )}>
         <ul className="space-y-2">
           {navItems.map((item, index) => {
-            const isActive = location.pathname === item.link ||
-              (item.link !== "/dashboard" && location.pathname.startsWith(item.link));
+            const isActive = location.pathname === item.link;
             const Icon = item.icon;
 
             return (
@@ -298,7 +172,6 @@ function SideNav({ drawerWidth, handleDrawerToggle, mobileOpen }: Props) {
         </ul>
       </nav>
 
-      {/* Logout button */}
       <div className={cn(
         "border-t border-border transition-all duration-300",
         isExpanded ? "p-4" : "p-2"
@@ -311,7 +184,7 @@ function SideNav({ drawerWidth, handleDrawerToggle, mobileOpen }: Props) {
           )}
           disabled={isLoading}
           onClick={handleLogout}
-          title={!isExpanded ? "Logout" : undefined}
+          title={!isExpanded ? "Sign out" : undefined}
         >
           <LogOut className={cn(
             "h-4 w-4 flex-shrink-0",
@@ -321,7 +194,7 @@ function SideNav({ drawerWidth, handleDrawerToggle, mobileOpen }: Props) {
             "whitespace-nowrap transition-all duration-300 overflow-hidden",
             isExpanded ? "opacity-100 w-auto" : "opacity-0 w-0"
           )}>
-            {isLoading ? "Logging out..." : "Logout"}
+            {isLoading ? "Signing out..." : "Sign out"}
           </span>
         </Button>
       </div>
@@ -330,7 +203,6 @@ function SideNav({ drawerWidth, handleDrawerToggle, mobileOpen }: Props) {
 
   return (
     <>
-      {/* Overlay for mobile when drawer is open */}
       <div
         className={`
           fixed inset-0 bg-black/50 z-30 sm:hidden
@@ -341,12 +213,11 @@ function SideNav({ drawerWidth, handleDrawerToggle, mobileOpen }: Props) {
       />
 
       <nav
-        style={{ 
+        style={{
           "--drawer-width": `${drawerWidth}px`,
           "--collapsed-width": `${collapsedWidth}px`
         } as React.CSSProperties}
       >
-        {/* Mobile drawer */}
         <div
           ref={sideNavRef}
           className={cn(
@@ -357,8 +228,7 @@ function SideNav({ drawerWidth, handleDrawerToggle, mobileOpen }: Props) {
           {mobileDrawer}
         </div>
 
-        {/* Desktop collapsible drawer */}
-        <div 
+        <div
           className={cn(
             "hidden sm:block fixed inset-y-0 left-0 z-40 transition-all duration-300 ease-in-out",
             isExpanded ? "w-[var(--drawer-width)]" : "w-[var(--collapsed-width)]"

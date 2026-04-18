@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Loader2, Mail, Lock, Eye, EyeOff, User, Map } from 'lucide-react'
 
 export default function Signup() {
@@ -15,7 +14,6 @@ export default function Signup() {
     password: '',
     confirmPassword: '',
     fullName: '',
-    role: 'individual' as 'individual' | 'business'
   })
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
@@ -32,35 +30,62 @@ export default function Signup() {
     setSuccess('')
     setLoading(true)
 
-    // Validation
+    if (!formData.fullName.trim()) {
+      setError('Please enter your full name')
+      setLoading(false)
+      return
+    }
+
+    if (!formData.email.trim()) {
+      setError('Please enter your email address')
+      setLoading(false)
+      return
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(formData.email)) {
+      setError('Please enter a valid email address')
+      setLoading(false)
+      return
+    }
+
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters long')
+      setLoading(false)
+      return
+    }
+
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match')
       setLoading(false)
       return
     }
 
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters')
-      setLoading(false)
-      return
-    }
-
     try {
-      const { error } = await signUp(formData.email, formData.password, {
-        full_name: formData.fullName,
-        role: formData.role
+      const { error } = await signUp(formData.email.trim(), formData.password, {
+        full_name: formData.fullName.trim(),
       })
 
       if (error) {
-        setError(error.message)
+        if (error.message.includes('already registered') || error.message.includes('User already registered')) {
+          setError('This email is already registered. Please try logging in instead.')
+        } else if (error.message.includes('Invalid email')) {
+          setError('Please enter a valid email address')
+        } else if (error.message.includes('Password')) {
+          setError('Password is too weak. Please use a stronger password.')
+        } else if (error.message.includes('Email rate limit')) {
+          setError('Too many signup attempts. Please try again in a few minutes.')
+        } else {
+          setError(error.message || 'Failed to create account. Please try again.')
+        }
       } else {
-        setSuccess('Account created successfully! Please check your email to verify your account.')
-        setTimeout(() => {
-          navigate('/login')
-        }, 2000)
+        setSuccess('Account created successfully! Redirecting to login...')
+        setFormData({ email: '', password: '', confirmPassword: '', fullName: '' })
+        setTimeout(() => { navigate('/login') }, 2000)
       }
     } catch (err) {
-      setError('An unexpected error occurred')
+      console.error('Signup error:', err)
+      setError('An unexpected error occurred. Please try again later.')
     } finally {
       setLoading(false)
     }
@@ -81,7 +106,7 @@ export default function Signup() {
           </div>
           <CardTitle className="text-xl sm:text-2xl text-center font-bold">Create account</CardTitle>
           <CardDescription className="text-center text-sm sm:text-base">
-            Join TR-ACE and discover amazing places
+            Join TR-ACE
           </CardDescription>
         </CardHeader>
         <CardContent className="px-4 sm:px-6">
@@ -131,28 +156,6 @@ export default function Signup() {
             </div>
 
             <div className="space-y-2">
-              <Label>Account Type</Label>
-              <RadioGroup
-                value={formData.role}
-                onValueChange={(value) => handleInputChange('role', value)}
-                className="flex flex-col space-y-2"
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="individual" id="individual" />
-                  <Label htmlFor="individual" className="font-normal">
-                    Individual - Explore and discover places
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="business" id="business" />
-                  <Label htmlFor="business" className="font-normal">
-                    Business - Promote your business and events
-                  </Label>
-                </div>
-              </RadioGroup>
-            </div>
-
-            <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -173,6 +176,9 @@ export default function Signup() {
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
+              <p className="text-xs text-muted-foreground">
+                Must be at least 6 characters
+              </p>
             </div>
 
             <div className="space-y-2">
