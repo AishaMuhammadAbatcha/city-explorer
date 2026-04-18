@@ -7,6 +7,7 @@ import Signup from "@/pages/auth/Signup";
 import ForgotPassword from "@/pages/auth/ForgotPassword";
 import Search from "@/pages/Search";
 import Settings from "@/pages/Settings";
+import History from "@/pages/History";
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
@@ -74,6 +75,7 @@ const Router = () => {
         }
       >
         <Route path="/search" element={<Search />} />
+        <Route path="/history" element={<History />} />
         <Route path="/settings" element={<Settings />} />
       </Route>
 
