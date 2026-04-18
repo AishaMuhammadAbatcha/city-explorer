@@ -218,7 +218,7 @@ export function PageLoading({ title }: { title?: string }) {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <LoadingState
-        title={title || 'Loading City Explorer...'}
+        title={title || 'Loading TR-ACE...'}
         description="Please wait while we prepare your experience"
       />
     </div>

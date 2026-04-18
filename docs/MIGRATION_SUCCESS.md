@@ -2,7 +2,7 @@
 
 ## ✅ Migration Status: **SUCCESS**
 
-Your City Explorer project has been successfully simplified from a complex dual-backend architecture to a clean, modern **Vite + React + Supabase** stack.
+Your TR-ACE project has been successfully simplified from a complex dual-backend architecture to a clean, modern **Vite + React + Supabase** stack.
 
 ---
 
@@ -20,7 +20,7 @@ Your City Explorer project has been successfully simplified from a complex dual-
 ### Files Changed
 ```
 Deleted:
-  - City_Explorer_Merged/ (entire directory)
+  - TrAce_Merged/ (entire directory)
   - src/app/ (Redux store)
   - src/auth/authSlice.ts
   - src/custom-components/feedbackApiSlice.ts
@@ -135,7 +135,7 @@ VITE_SUPABASE_ANON_KEY=your_anon_key
 
 ## 🔍 What Was Removed (and Why)
 
-### Node.js Backend (City_Explorer_Merged)
+### Node.js Backend (TrAce_Merged)
 **Why removed**: All its features are better handled by Supabase
 - Auth → Supabase Auth
 - Database → Supabase PostgreSQL
@@ -266,7 +266,7 @@ Your project now includes:
 
 ---
 
-**🚀 Your City Explorer is now running on a clean, modern stack and ready for production!**
+**🚀 Your TR-ACE is now running on a clean, modern stack and ready for production!**
 
 If you have any questions or need help with Supabase features, check the documentation or reach out for support.
 

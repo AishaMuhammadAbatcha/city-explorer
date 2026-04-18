@@ -90,7 +90,7 @@ export const PlaceDetails: React.FC<PlaceDetailsProps> = ({
       try {
         await navigator.share({
           title: currentPlace.name,
-          text: `Check out ${currentPlace.name} on City Explorer`,
+          text: `Check out ${currentPlace.name} on TR-ACE`,
           url: window.location.href
         })
       } catch (error) {

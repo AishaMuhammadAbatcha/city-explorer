@@ -177,7 +177,7 @@ function SideNav({ drawerWidth, handleDrawerToggle, mobileOpen }: Props) {
               <Map className="w-4 h-4 text-white" />
             </div>
             <span className="text-lg font-bold text-foreground whitespace-nowrap">
-              City Explorer
+              TR-ACE
             </span>
           </div>
           <Button
@@ -255,7 +255,7 @@ function SideNav({ drawerWidth, handleDrawerToggle, mobileOpen }: Props) {
             "text-lg font-bold text-foreground whitespace-nowrap transition-all duration-300 overflow-hidden",
             isExpanded ? "opacity-100 w-auto" : "opacity-0 w-0"
           )}>
-            City Explorer
+            TR-ACE
           </span>
         </div>
       </div>

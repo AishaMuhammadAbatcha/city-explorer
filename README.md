@@ -1,4 +1,4 @@
-# City Explorer
+# TR-ACE
 
 A modern location-based discovery platform built with **Vite + React + TypeScript** and **Supabase**, helping users explore and connect with local businesses, events, and activities.
 
@@ -41,7 +41,7 @@ A modern location-based discovery platform built with **Vite + React + TypeScrip
 1. **Clone the repository**
    ```bash
    git clone <your-repo-url>
-   cd city-explorer
+   cd tr-ace
    ```
 
 2. **Install dependencies**
@@ -78,7 +78,7 @@ A modern location-based discovery platform built with **Vite + React + TypeScrip
 ## 📁 Project Structure
 
 ```
-city-explorer/
+tr-ace/
 ├── src/
 │   ├── components/       # Reusable UI components
 │   │   ├── ui/          # shadcn/ui components

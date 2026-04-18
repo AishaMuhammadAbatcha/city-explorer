@@ -48,7 +48,7 @@ const Signup = () => {
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <h1 className="text-3xl font-bold text-bg-primary-dark2 mb-2">
-            City Explorer
+            TR-ACE
           </h1>
           <h2 className="text-xl font-semibold text-gray-700">Welcome</h2>
         </div>

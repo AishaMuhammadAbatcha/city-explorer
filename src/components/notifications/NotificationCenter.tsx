@@ -356,7 +356,7 @@ function NotificationSettings({
         <DialogHeader>
           <DialogTitle>Notification Settings</DialogTitle>
           <DialogDescription>
-            Manage how you receive notifications from City Explorer
+            Manage how you receive notifications from TR-ACE
           </DialogDescription>
         </DialogHeader>
 

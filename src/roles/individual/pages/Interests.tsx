@@ -63,7 +63,7 @@ const Interests: React.FC = () => {
     <div className="min-h-screen bg-gray-50 px-4 py-8 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-bg-primary-dark2 mb-2">City Explorer</h1>
+          <h1 className="text-3xl font-bold text-bg-primary-dark2 mb-2">TR-ACE</h1>
           <h2 className="text-2xl font-semibold text-gray-900 mb-4">Select Your Interests</h2>
           <p className="text-gray-600 max-w-2xl mx-auto">
             Choose from the options below to tailor your experience.

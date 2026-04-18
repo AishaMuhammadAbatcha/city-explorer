@@ -15,7 +15,7 @@ function Footer() {
         // variant="body1"
         // sx={{ fontSize: "12px", lineHeight: "12px", color: "grey" }}
       >
-        &copy; {currentYear} City Explorer LTD.
+        &copy; {currentYear} TR-ACE LTD.
       </p>
     </div>
   );

@@ -1,6 +1,6 @@
 # Supabase Migrations
 
-This directory contains SQL migration files for the City Explorer application.
+This directory contains SQL migration files for the TR-ACE application.
 
 ## How to Apply Migrations
 

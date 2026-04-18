@@ -47,7 +47,7 @@ const Login = () => {
             <span className="text-2xl font-bold text-white">CE</span>
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            City Explorer
+            TR-ACE
           </h1>
           <p className="text-gray-600">Welcome back! Please sign in to your account</p>
         </div>

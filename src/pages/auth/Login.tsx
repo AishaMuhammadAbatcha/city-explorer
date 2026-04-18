@@ -49,7 +49,7 @@ export default function Login() {
           </div>
           <CardTitle className="text-xl sm:text-2xl text-center font-bold">Welcome back</CardTitle>
           <CardDescription className="text-center text-sm sm:text-base">
-            Sign in to your City Explorer account
+            Sign in to your TR-ACE account
           </CardDescription>
         </CardHeader>
         <CardContent className="px-4 sm:px-6">

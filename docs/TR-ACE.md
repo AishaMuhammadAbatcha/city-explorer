@@ -1,24 +1,24 @@
-## City Explorer - Consolidated Overview
+## TR-ACE - Consolidated Overview
 Brand Color:
 #3884FD blue
 #FCD806 yellow
-What is City Explorer?
-City Explorer is a location-based discovery platform designed to help users explore and
+What is TR-ACE?
+TR-ACE is a location-based discovery platform designed to help users explore and
 connect with local businesses, events, and activities within their city. It provides real-time,
 personalized recommendations based on user preferences and location, offering an easy
 way to discover new places, attractions, and experiences in their area.
-What Problem is City Explorer Solving?
-City Explorer addresses several common challenges faced by city residents and visitors:
-1. Difficulty Discovering Local Experiences: City Explorer offers personalized
+What Problem is TR-ACE Solving?
+TR-ACE addresses several common challenges faced by city residents and visitors:
+1. Difficulty Discovering Local Experiences: TR-ACE offers personalized
 recommendations, making it easier for users to explore what their city has to offer.
-2. Lack of Real-Time Information: City Explorer provides real-time updates, ensuring
+2. Lack of Real-Time Information: TR-ACE provides real-time updates, ensuring
 users receive the most accurate and timely data.
 3. Navigating an Overwhelming Selection: AI-based suggestions help narrow down
 choices based on preferences like ratings, proximity, and type of activity.
-4. Connecting People to Local Culture: City Explorer helps people engage with their
+4. Connecting People to Local Culture: TR-ACE helps people engage with their
 community by promoting local culture, events, and small businesses, fostering a sense of
 connection.
-User Personas for City Explorer
+User Personas for TR-ACE
 1. The Urban Explorer (Aisha, 26, Digital Entrepreneur)
 Background:
 - Lives in Abuja, loves discovering new spots, and runs a startup.
@@ -30,7 +30,7 @@ Goals & Needs:
 Pain Points:
 - Struggles to find unique places beyond mainstream options.
 - Misses events due to a lack of timely notifications.
-How City Explorer Helps:
+How TR-ACE Helps:
 - Curated suggestions based on preferences and past visits.
 - Real-time notifications on trending events.- Reviews and ratings to evaluate places before visiting.
 2. The Busy Professional (David, 35, Consultant)
@@ -42,12 +42,12 @@ Goals & Needs:
 - Seeks high-rated, exclusive places.
 Pain Points:
 - Frustrated by outdated business hours and overcrowded places.
-How City Explorer Helps:
+How TR-ACE Helps:
 - AI-based recommendations tailored to a professional lifestyle.
 - Accurate business hours and real-time updates.
 - Reservation options to avoid wait times.
-User Journeys for City Explorer Personas
-Each user journey illustrates how different users interact with City Explorer to achieve their
+User Journeys for TR-ACE Personas
+Each user journey illustrates how different users interact with TR-ACE to achieve their
 goals.
 1. The Urban Explorer (Aisha, 26, Digital Entrepreneur)
 Goal: Find a unique place for a weekend hangout with friends.
@@ -57,7 +57,7 @@ User Journey:
 •
 •
 •
-- Discovery: Aisha opens City Explorer and browses trending places.
+- Discovery: Aisha opens TR-ACE and browses trending places.
 - Exploration: She uses filters or the AI powered recommendations to find quiet rooftop
 cafés with good reviews.
 - Decision: She checks user reviews and photos before picking a spot.
@@ -95,7 +95,7 @@ User Journey:
 - Exploration: She finds a traditional pottery class with great reviews.
 - Decision: She reads about the instructor, checks photos, and books a slot.
 - Action: She attends the class and meets other travelers.
-- Experience: She shares a review and uploads pictures to City Explorer’s travel journal
+- Experience: She shares a review and uploads pictures to TR-ACE’s travel journal
 feature.
 Pain Points Addressed:
 •Easily finds authentic cultural experiences.
@@ -118,9 +118,9 @@ Pain Points Addressed:
 •Finds student-friendly pricing and deals.
 •Shares and engages with event content easily.
 
-Feature Prioritization Breakdown for City Explorer
+Feature Prioritization Breakdown for TR-ACE
 1. Must-Have (Core Features) – Without these, the app won’t function
-These are essential for City Explorer’s core functionality and user expectations.
+These are essential for TR-ACE’s core functionality and user expectations.
 Location-Based Search – Users should be able to find places, events, and businesses near
 them.
 Real-Time Event & Business Listings – Accurate, updated details on events, restaurants,
@@ -158,15 +158,15 @@ planning.
 In-App Payment & Ticketing – Users can buy tickets for events directly from the app.
 Crowdsourced Live Updates – Users can report real-time changes like roadblocks or
 event delays.
-Local Business Discounts & Deals – Exclusive offers for City Explorer users.
+Local Business Discounts & Deals – Exclusive offers for TR-ACE users.
 AI-Generated Itineraries – Users can input preferences, and the app creates a day plan.
-Task Flow and User Flow for City Explorer Personas
+Task Flow and User Flow for TR-ACE Personas
 Below are the task flows and user flows based on the primary use cases for each persona.
 These maps illustrate the steps users take to accomplish their goals.
 The Urban Explorer (Aisha, 26, Digital Entrepreneur)
 Goal: Find unique places for hangouts, dining, and social activities.
 Task Flow:
-• Open City Explorer
+• Open TR-ACE
 • Allow location access or manually enter a city.
 • Search for a place by category (e.g., café, restaurant).• Apply filters (e.g., rating, proximity, vibe).
 • View search results (list and map view).
@@ -189,7 +189,7 @@ User Flow:
 The Busy Professional (David, 35, Consultant)
 Goal: Quickly find high-quality restaurants and quiet work-friendly spaces.
 Task Flow:
-• Open City Explorer
+• Open TR-ACE
 • Allow location access or manually search for places.
 • Search for fine dining or work-friendly spaces.
 • Filter by rating and category (e.g., business lunch, professional atmosphere).
@@ -212,7 +212,7 @@ User Flow:
 The Traveler (Maria, 29, Travel Blogger)
 Goal: Discover hidden cultural experiences and local gems.
 Task Flow:
-• Open City Explorer
+• Open TR-ACE
 • Allow location access or enter a city manually.
 • Search for local experiences (e.g., historical sites, hidden gems).
 • Apply filters (e.g., cultural experiences, local spots).
@@ -235,7 +235,7 @@ Task Flow:
 The Event Enthusiast (Chinedu, 23, University Student)
 Goal: Discover and attend local events like concerts and social gatherings.
 Task Flow:
-• Open City Explorer
+• Open TR-ACE
 • Allow location access or enter a city manually.
 • Search for upcoming events (e.g., concerts, meetups).
 • Apply filters (e.g., date, event type).
@@ -256,11 +256,11 @@ User Flow:
 • End
 Task Flows for Must-Have Features
 These are user flows based on the primary use cases of different personas interacting with
-City Explorer. They follow the users' journey from start to goal completion.
+TR-ACE. They follow the users' journey from start to goal completion.
 To create task flows based on the must-have features, we need to break down each core
 feature into step-by-step tasks the user must complete.
 Task Flows for Must-Have Features
-These focus on specific core functionalities that are essential for City Explorer, as identified
+These focus on specific core functionalities that are essential for TR-ACE, as identified
 earlier (Search, Filtering, AI-powered Recommendations, Location-based Suggestions, and
 Reviews).
 Task Flow: Searching for a Place

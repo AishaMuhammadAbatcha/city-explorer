@@ -1,8 +1,8 @@
-# City Explorer Backend Setup Guide
+# TR-ACE Backend Setup Guide
 
 ## 🚀 Complete Authentication & Database Implementation
 
-Your City Explorer app now has a full backend implementation with Supabase authentication and database.
+Your TR-ACE app now has a full backend implementation with Supabase authentication and database.
 
 ## 📋 What's Been Implemented
 
@@ -125,7 +125,7 @@ Your City Explorer app now has a full backend implementation with Supabase authe
 
 ## 🚀 Production Ready
 
-Your City Explorer app is now production-ready with:
+Your TR-ACE app is now production-ready with:
 - ✅ Secure authentication
 - ✅ Scalable database architecture
 - ✅ Modern UI with dark/light mode

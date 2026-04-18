@@ -81,7 +81,7 @@ export default function Signup() {
           </div>
           <CardTitle className="text-xl sm:text-2xl text-center font-bold">Create account</CardTitle>
           <CardDescription className="text-center text-sm sm:text-base">
-            Join City Explorer and discover amazing places
+            Join TR-ACE and discover amazing places
           </CardDescription>
         </CardHeader>
         <CardContent className="px-4 sm:px-6">

@@ -38,7 +38,7 @@ export class GeminiService {
       const model = this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
 
       // Create a context-aware prompt for city exploration
-      const systemPrompt = `You are a helpful AI assistant for City Explorer, an app that helps people discover amazing places, businesses, events, and activities in Nigerian cities, especially Abuja.
+      const systemPrompt = `You are a helpful AI assistant for TR-ACE, an app that helps people discover amazing places, businesses, events, and activities in Nigerian cities, especially Abuja.
 
 Your role is to:
 - Recommend restaurants, cafes, entertainment venues, shopping centers, and tourist attractions
@@ -121,7 +121,7 @@ Be friendly, concise, and helpful. Format your responses with bullet points or n
 
       const model = this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
 
-      const systemPrompt = `You are a helpful AI assistant for City Explorer, an app that helps people discover amazing places in Nigerian cities. Be concise and helpful.`;
+      const systemPrompt = `You are a helpful AI assistant for TR-ACE, an app that helps people discover amazing places in Nigerian cities. Be concise and helpful.`;
 
       let fullPrompt = systemPrompt + '\n\n';
 

@@ -1,4 +1,4 @@
--- Supabase Setup for City Explorer
+-- Supabase Setup for TR-ACE
 -- Run this in your Supabase SQL Editor
 
 -- Create custom types
