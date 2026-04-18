@@ -42,9 +42,13 @@ export type ProductCard = BaseCard & {
   kind: 'product'
   title: string
   price?: string
+  price_raw?: string
+  currency?: string
   seller?: string
+  seller_contact?: string
   image?: string
   url: string
+  verified?: boolean
 }
 
 export type Card = PlaceCard | VideoCard | ArticleCard | ProductCard
