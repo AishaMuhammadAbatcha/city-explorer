@@ -183,6 +183,78 @@ function hostOf(url: string): string {
   }
 }
 
+// ---------------------------------------------------------------------
+// Phase 5 helpers — personalization + prior-turn card summaries.
+// ---------------------------------------------------------------------
+
+interface UserPrefsRow {
+  default_location: string | null
+  currency: string | null
+  search_radius_m: number | null
+  price_range_min: number | string | null
+  price_range_max: number | string | null
+}
+
+function buildPrefsBlock(row: UserPrefsRow): string {
+  const lines: string[] = []
+  if (row.default_location && row.default_location.trim().length > 0) {
+    lines.push(`- Default location: ${row.default_location.trim()}`)
+  }
+  if (row.currency && row.currency.trim().length > 0) {
+    lines.push(`- Currency preference: ${row.currency.trim()}`)
+  }
+  if (typeof row.search_radius_m === 'number' && row.search_radius_m > 0) {
+    const km = row.search_radius_m / 1000
+    const formatted = Number.isInteger(km) ? `${km}` : km.toFixed(1)
+    lines.push(`- Search radius: ${formatted} km`)
+  }
+  const pmin = row.price_range_min != null ? Number(row.price_range_min) : null
+  const pmax = row.price_range_max != null ? Number(row.price_range_max) : null
+  if ((pmin != null && !Number.isNaN(pmin)) || (pmax != null && !Number.isNaN(pmax))) {
+    const lo = pmin != null && !Number.isNaN(pmin) ? `$${pmin}` : '—'
+    const hi = pmax != null && !Number.isNaN(pmax) ? `$${pmax}` : '—'
+    lines.push(`- Price range: ${lo}–${hi}`)
+  }
+  if (lines.length === 0) return ''
+  return [
+    'User preferences:',
+    ...lines,
+    "Use these as defaults when the user's query is ambiguous about location, currency, radius, or price.",
+  ].join('\n')
+}
+
+interface PriorCard {
+  kind?: string
+  id?: string
+  title?: string
+  name?: string
+}
+
+function titleOf(card: PriorCard): string {
+  return (card.title ?? card.name ?? '').toString().trim()
+}
+
+function summarisePriorCards(cards: PriorCard[]): string {
+  const byKind = new Map<string, PriorCard[]>()
+  for (const c of cards) {
+    if (!c || typeof c.kind !== 'string') continue
+    const list = byKind.get(c.kind) ?? []
+    list.push(c)
+    byKind.set(c.kind, list)
+  }
+  if (byKind.size === 0) return ''
+  const parts: string[] = []
+  for (const [kind, list] of byKind) {
+    const names = list
+      .map(titleOf)
+      .filter((t) => t.length > 0)
+      .slice(0, 3)
+    const titles = names.length > 0 ? ` (${names.join(', ')}...)` : ''
+    parts.push(`${list.length} ${kind}s${titles}`)
+  }
+  return `[Previously shown: ${parts.join(', ')}]`
+}
+
 function cardsFromWebSearch(out: WebSearchOutput): Card[] {
   return out.items
     .filter((it) => !!it.link)
@@ -418,18 +490,41 @@ Deno.serve(async (req: Request) => {
   // Load prior turns for context.
   const { data: priorRows } = await userClient
     .from('messages')
-    .select('role, content, created_at')
+    .select('role, content, cards, created_at')
     .eq('conversation_id', conversationId)
     .order('created_at', { ascending: true })
     .limit(20)
 
+  // Phase 5 follow-up context: append a one-line card summary after each
+  // assistant message that produced cards, so Gemini sees "what you
+  // already showed them" when they say things like "show me more like
+  // that". The summary is transient (only passed to Gemini, never
+  // written back to the DB).
   const history: GeminiContent[] = (priorRows ?? [])
     .filter((m) => m.role === 'user' || m.role === 'assistant')
     .slice(-10)
-    .map((m) => ({
-      role: m.role === 'assistant' ? ('model' as const) : ('user' as const),
-      parts: [{ text: m.content }],
-    }))
+    .map((m) => {
+      const role = m.role === 'assistant' ? ('model' as const) : ('user' as const)
+      let text = m.content
+      if (m.role === 'assistant' && Array.isArray(m.cards) && m.cards.length > 0) {
+        const summary = summarisePriorCards(m.cards as PriorCard[])
+        if (summary.length > 0) text = `${text}\n${summary}`
+      }
+      return { role, parts: [{ text }] }
+    })
+
+  // Phase 5 personalization: read the user's prefs and build a
+  // system-prompt block that mentions only the fields they've actually
+  // set. Everything null is skipped.
+  const { data: prefsRow } = await adminClient
+    .from('user_preferences')
+    .select('default_location, currency, search_radius_m, price_range_min, price_range_max')
+    .eq('user_id', userId)
+    .maybeSingle()
+
+  const prefsBlock = prefsRow ? buildPrefsBlock(prefsRow as UserPrefsRow) : ''
+  const systemPromptText =
+    prefsBlock.length > 0 ? `${SYSTEM_INSTRUCTION}\n\n${prefsBlock}` : SYSTEM_INSTRUCTION
 
   const sse = createSSEStream()
   const resp = new Response(sse.stream, {
@@ -487,7 +582,7 @@ Deno.serve(async (req: Request) => {
         emit({ type: 'step_start', iteration, label })
 
         const reqPayload: GeminiRequest = {
-          systemInstruction: { role: 'system', parts: [{ text: SYSTEM_INSTRUCTION }] },
+          systemInstruction: { role: 'system', parts: [{ text: systemPromptText }] },
           tools,
           contents,
         }
@@ -654,7 +749,7 @@ Deno.serve(async (req: Request) => {
           const synth = await callGemini({
             systemInstruction: {
               role: 'system',
-              parts: [{ text: SYSTEM_INSTRUCTION }],
+              parts: [{ text: systemPromptText }],
             },
             contents: [
               ...contents,
