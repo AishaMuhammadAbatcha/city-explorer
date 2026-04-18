@@ -155,6 +155,45 @@ Runtime prerequisites (not performed by the agent run):
 
 **Risks**: structured-data gaps; hallucinated prices when data is thin.
 
+**Status**: Implemented 2026-04-18. Commits (oldest → newest):
+
+- `c1a7663e` feat: add HTML fetch + schema.org JSON-LD extractors
+- `f1725aa7` feat: add shopping_search tool with JSON-LD parsing
+- `67fe0d59` feat: register shopping_search in agent-run tool registry
+- `17cd93bf` types: extend ProductCard with price and verification fields
+- `e011d9da` feat: render real ProductCard with verified price and seller
+- `a8b85c64` style: avoid unused-var destructure in schemaOrg @graph flatten
+
+Sub-decisions (locked during execution):
+
+- No headless browser; raw `fetch` only. JS-rendered-only JSON-LD is
+  an accepted miss.
+- No paid shopping APIs — reuse Programmable Search + manual
+  schema.org/Product + schema.org/Organization parsing.
+- LLM writes the shopping query verbatim; tool signature
+  `shopping_search(query, max_results?=5)`.
+- Per-URL cap: 3 s fetch timeout, 2 MB body, follow redirects; robots.txt
+  checked with a 2 s timeout and fail-open (10 min per-origin cache).
+- Overall tool cap: 12 s wall clock, inside the 30 s turn budget.
+- `Promise.allSettled` for parallel URL fetches so one stuck site
+  cannot stall the batch.
+- User-Agent: `TR-ACE-Agent/1.0 (+https://tr-ace.dev/bot; schema.org
+  product metadata reader)`.
+- Only products with an extractable price are returned; prices are
+  never synthesized.
+- System-prompt guardrails added: shopping_search is required for
+  product queries, and the model must not quote a price / seller /
+  contact not present in tool output.
+
+Runtime prerequisites (not performed by the agent run):
+
+1. No new environment variables or Google Cloud APIs.
+2. Redeploy the edge function: `supabase functions deploy agent-run`.
+
+Expected real-world hit rate: 40–70% of result pages yield parseable
+JSON-LD in practice. Amazon/Walmart frequently block datacenter IPs
+and return 503/captcha — accepted limitation for MVP.
+
 ---
 
 ## Phase 5 — Memory & personalization

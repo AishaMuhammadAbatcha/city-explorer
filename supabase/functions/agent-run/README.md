@@ -7,7 +7,7 @@ back as Server-Sent Events, and persists the turn with typed result
 cards.
 
 **Tools registered**: `web_search`, `places_search`, `youtube_search`,
-`knowledge_graph`, `geocode`.
+`knowledge_graph`, `geocode`, `shopping_search`.
 
 **Per-turn circuit breakers** (Phase 3): 5-iteration hard cap, 30 s
 wall clock, $0.05 accumulated tool cost. Exceeding any of these ends
@@ -100,9 +100,42 @@ Response is `text/event-stream`. Event types:
 - `done` — final marker
 - `error` — fatal; stream is closed after this
 
+## shopping_search
+
+Phase 4 tool. Fetches top Programmable Search results for a product
+query and parses `schema.org/Product` JSON-LD out of each page to
+build a verified `ProductCard` list.
+
+- **No new env vars and no new Google Cloud APIs.** Reuses the existing
+  Programmable Search quota (one CSE call per invocation, logged as
+  $0.005); page fetches are direct HTTP and cost nothing.
+- Relies on publisher-provided `application/ld+json` blocks. No
+  headless browser — pages that render Product metadata via JavaScript
+  will be missed. Expected real-world hit rate is 40–70%.
+- Per-URL caps: **3 s fetch timeout**, **2 MB body** (streamed,
+  aborted on overflow), redirects followed up to the platform default.
+- Overall tool cap: **12 s wall clock** via an outer AbortController
+  racing `Promise.allSettled` over the parallel fetches, so the tool
+  fits inside the 30 s turn budget even when several sites hang.
+- **robots.txt is honored with fail-open semantics**: 2 s fetch
+  timeout, 10 min per-origin cache; any network or parse failure
+  allows the fetch to proceed.
+- User-Agent:
+  `TR-ACE-Agent/1.0 (+https://tr-ace.dev/bot; schema.org product metadata reader)`.
+- Products without an extractable price are dropped. The tool never
+  synthesizes a price; the system prompt enforces the same rule on
+  the model side.
+
+Expect fewer products than `max_results` when many of the top N
+organic results are JS-rendered, datacenter-blocked (Amazon/Walmart
+often 503 datacenter IPs), or simply lack Product markup.
+
 ## Phase scope reminder
 
 - **Phase 2:** at most one tool call per turn.
-- **Phase 3 (this):** ReAct loop, 5 tools, 5-step/30s/$0.05 per-turn
+- **Phase 3:** ReAct loop, 5 tools, 5-step/30s/$0.05 per-turn
   caps, typed result cards on `messages.cards`.
+- **Phase 4 (this):** `shopping_search` + schema.org/Product parsing,
+  server-formatted price strings, shopping guardrails in the system
+  prompt.
 - **Phase 7:** per-user $0.10/day cap enforced here.
