@@ -60,6 +60,12 @@ import {
   type KnowledgeGraphOutput,
 } from './tools/knowledgeGraph.ts'
 import { runGeocode, GEOCODE_DECLARATION, GEOCODE_COST_USD } from './tools/geocode.ts'
+import {
+  runShoppingSearch,
+  SHOPPING_SEARCH_DECLARATION,
+  SHOPPING_SEARCH_COST_USD,
+  type ShoppingSearchOutput,
+} from './tools/shoppingSearch.ts'
 
 // @ts-expect-error Deno global is present at runtime.
 declare const Deno: { env: { get(key: string): string | undefined }; serve(handler: (req: Request) => Promise<Response> | Response): void }
@@ -78,13 +84,19 @@ Tools:
 - youtube_search — reviews, vlogs, how-tos, or when the user wants video.
 - knowledge_graph — authoritative summaries of well-known entities.
 - geocode — resolve an ambiguous address to lat/lng BEFORE places_search when helpful. Not an end-user answer on its own.
+- shopping_search — products for sale with verified price + seller. Required for any shopping query.
 
 Rules:
 - Break the user's request into sub-questions and call the right tool for each.
 - Do not call the same tool with the same arguments twice.
 - Cite every factual claim with [1], [2]… that map to the tool output URLs/links. Never invent URLs, prices, phone numbers, addresses, or ratings.
 - When you have enough information, stop calling tools and reply with a concise markdown answer.
-- Prefer short paragraphs and short lists. The UI renders result cards automatically from tool outputs, so don't duplicate full listings in prose — narrate and highlight.`
+- Prefer short paragraphs and short lists. The UI renders result cards automatically from tool outputs, so don't duplicate full listings in prose — narrate and highlight.
+
+Shopping guardrails:
+- For product/shopping queries (price, buy, cheapest, where to buy, seller), call shopping_search, not web_search.
+- Never state a price, seller name, or seller contact that is not present in a tool output. If no verified price was returned for an item, do not list that item.
+- When comparing products, cite the seller and price from shopping_search output only.`
 
 interface RequestBody {
   message: string
@@ -135,9 +147,13 @@ type Card =
       id: string
       title: string
       price?: string
+      price_raw?: string
+      currency?: string
       seller?: string
+      seller_contact?: string
       image?: string
       url: string
+      verified?: boolean
     }
 
 function json(status: number, body: unknown, origin: string | null): Response {
@@ -241,6 +257,36 @@ function citationsFromYoutube(out: YouTubeSearchOutput): Citation[] {
   return out.videos.map((v) => ({ url: v.url, title: v.title, snippet: v.channel || undefined }))
 }
 
+function formatPrice(price: string, currency: string | undefined, isRange: boolean): string {
+  const cur = currency && currency.trim().length > 0 ? currency.trim() : ''
+  const body = cur ? `${cur} ${price}` : price
+  return isRange ? `from ${body}` : body
+}
+
+function cardsFromShopping(out: ShoppingSearchOutput): Card[] {
+  return out.products.map((p) => ({
+    kind: 'product',
+    id: p.url,
+    title: p.name,
+    price: formatPrice(p.price, p.currency, p.price_is_range),
+    price_raw: p.price,
+    currency: p.currency,
+    seller: p.seller ?? undefined,
+    seller_contact: p.seller_contact ?? undefined,
+    image: p.image,
+    url: p.url,
+    verified: true,
+  }))
+}
+
+function citationsFromShopping(out: ShoppingSearchOutput): Citation[] {
+  return out.products.map((p) => ({
+    url: p.url,
+    title: p.name,
+    snippet: p.seller ? `Sold by ${p.seller}` : undefined,
+  }))
+}
+
 function citationsFromKnowledgeGraph(out: KnowledgeGraphOutput): Citation[] {
   return out.entities
     .filter((e) => !!e.url)
@@ -295,6 +341,10 @@ function summariseToolOutput(tool: string, output: unknown): string {
       return `Found ${o.entities?.length ?? 0} entities`
     case 'geocode':
       return `Geocoded ${o.results?.length ?? 0} matches`
+    case 'shopping_search': {
+      const products = (o as { products?: unknown[] }).products ?? []
+      return `Found ${products.length} verified products`
+    }
     default:
       return 'done'
   }
@@ -417,6 +467,7 @@ Deno.serve(async (req: Request) => {
             YOUTUBE_SEARCH_DECLARATION,
             KNOWLEDGE_GRAPH_DECLARATION,
             GEOCODE_DECLARATION,
+            SHOPPING_SEARCH_DECLARATION,
           ],
         },
       ]
@@ -519,6 +570,20 @@ Deno.serve(async (req: Request) => {
               toolOutput = out
               costThisCall = GEOCODE_COST_USD
               // geocode is a utility — no card, no citation.
+              break
+            }
+            case 'shopping_search': {
+              const out = await runShoppingSearch({
+                query: String(fcall.args.query ?? ''),
+                max_results:
+                  typeof fcall.args.max_results === 'number'
+                    ? (fcall.args.max_results as number)
+                    : undefined,
+              })
+              toolOutput = out
+              costThisCall = SHOPPING_SEARCH_COST_USD
+              citations = citations.concat(citationsFromShopping(out))
+              cards.push(...cardsFromShopping(out))
               break
             }
             default:
