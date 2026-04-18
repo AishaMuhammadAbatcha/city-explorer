@@ -44,6 +44,93 @@ export interface Database {
           updated_at?: string
         }
       }
+      conversations: {
+        Row: {
+          id: string
+          user_id: string
+          title: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          title?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          title?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      messages: {
+        Row: {
+          id: string
+          conversation_id: string
+          role: 'user' | 'assistant' | 'system'
+          content: string
+          citations: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          conversation_id: string
+          role: 'user' | 'assistant' | 'system'
+          content: string
+          citations?: Json
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          conversation_id?: string
+          role?: 'user' | 'assistant' | 'system'
+          content?: string
+          citations?: Json
+          created_at?: string
+        }
+      }
+      tool_calls: {
+        Row: {
+          id: string
+          message_id: string
+          tool_name: string
+          input: Json
+          output: Json
+          duration_ms: number | null
+          cost_usd: number
+          status: 'success' | 'error' | 'timeout'
+          error_message: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          message_id: string
+          tool_name: string
+          input?: Json
+          output?: Json
+          duration_ms?: number | null
+          cost_usd?: number
+          status: 'success' | 'error' | 'timeout'
+          error_message?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          message_id?: string
+          tool_name?: string
+          input?: Json
+          output?: Json
+          duration_ms?: number | null
+          cost_usd?: number
+          status?: 'success' | 'error' | 'timeout'
+          error_message?: string | null
+          created_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
