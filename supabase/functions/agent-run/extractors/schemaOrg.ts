@@ -60,7 +60,10 @@ function pushWithGraph(acc: unknown[], node: unknown): void {
   const graph = (node as Record<string, unknown>)['@graph']
   if (Array.isArray(graph)) {
     for (const g of graph) acc.push(g)
-    const { ['@graph']: _g, ...rest } = node as Record<string, unknown>
+    const rest: Record<string, unknown> = {}
+    for (const [k, v] of Object.entries(node as Record<string, unknown>)) {
+      if (k !== '@graph') rest[k] = v
+    }
     if (Object.keys(rest).length > 0) acc.push(rest)
   } else {
     acc.push(node)
