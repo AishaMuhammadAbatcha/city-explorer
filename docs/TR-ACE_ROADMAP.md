@@ -76,6 +76,21 @@ Anything paid (Place Details, Shopping API, SerpAPI) stays out of MVP.
 
 **Effort**: 1–2 weeks
 
+**Status**: Implemented 2026-04-18. Commits (oldest → newest):
+
+- `4ffa94fd` db: add agent core tables (conversations, messages, tool_calls)
+- `245de0b8` types: add agent database + SSE event types
+- `e094555a` chore: remove edge functions that depended on dropped tables
+- `25142508` feat: add agent-run edge function with web_search and places_search tools
+- `bec656a8` feat: add useAgentStream and useConversation hooks
+- `249ad990` feat: implement chat UI on /search with streaming
+- `89389431` feat: enable anonymous sign-in on app load
+
+Runtime prerequisites (not performed by the agent run): enable
+anonymous sign-ins in Supabase, apply migration 006, set
+`GEMINI_API_KEY` / `GOOGLE_API_KEY` / `GOOGLE_CSE_ID` with
+`supabase secrets set`, deploy the `agent-run` function.
+
 ---
 
 ## Phase 3 — Agentic planner
