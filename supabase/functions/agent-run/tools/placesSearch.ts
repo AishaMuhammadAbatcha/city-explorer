@@ -1,12 +1,15 @@
 // Google Places API (New) — Text Search.
 //
 // Basic fields are free up to 10K calls/month, then $0.032/call.
-// Phase 2 logs 0 cost_usd. Location bias is optional and accepts a
+// Phase 3 logs the post-free-tier price so the cost circuit-breaker
+// trips at realistic spend. Location bias is optional and accepts a
 // free-form string (city, address, lat/lng) — when present we pass
 // it through as `textQuery` suffix; this avoids a separate geocode
 // step for MVP. Radius is advisory only in this mode.
 //
 // https://developers.google.com/maps/documentation/places/web-service/text-search
+
+export const PLACES_SEARCH_COST_USD = 0.032
 
 export interface PlacesSearchInput {
   query: string

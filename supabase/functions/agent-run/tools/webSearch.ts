@@ -1,10 +1,13 @@
 // Google Programmable Search JSON API client.
 //
 // Free tier: 100 queries/day. Paid tier: $5 per 1000 queries
-// (~$0.005/call). Phase 2 logs 0 cost_usd — Phase 7 will enforce
-// budget caps.
+// (~$0.005/call). Phase 3 logs the conservative $0.005 so the cost
+// circuit-breaker trips on realistic spend signal even inside the
+// free tier; Phase 7 adds per-user enforcement.
 //
 // https://developers.google.com/custom-search/v1/overview
+
+export const WEB_SEARCH_COST_USD = 0.005
 
 export interface WebSearchInput {
   query: string
