@@ -2,6 +2,7 @@ import { MapPin, Star, Navigation } from 'lucide-react'
 import { Map, AdvancedMarker } from '@vis.gl/react-google-maps'
 import type { PlaceCard as PlaceCardType } from '@/types/agent'
 import { Button } from '@/components/ui/button'
+import { useGeolocation } from '@/hooks/useGeolocation'
 import { SaveButton } from './SaveButton'
 
 interface PlaceCardProps {
@@ -25,9 +26,20 @@ function Stars({ rating, count }: { rating?: number; count?: number }) {
 }
 
 export function PlaceCard({ card, sourceMessageId }: PlaceCardProps) {
-  const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination_place_id=${encodeURIComponent(
-    card.place_id,
-  )}&destination=${encodeURIComponent(card.name)}`
+  const { request: requestLocation } = useGeolocation()
+
+  const handleDirections = async () => {
+    const coords = await requestLocation()
+    const params = new URLSearchParams({
+      api: '1',
+      destination_place_id: card.place_id,
+      destination: card.name,
+    })
+    if (coords) params.set('origin', `${coords.lat},${coords.lng}`)
+    const url = `https://www.google.com/maps/dir/?${params.toString()}`
+    window.open(url, '_blank', 'noopener,noreferrer')
+  }
+
   return (
     <div className="relative flex flex-col rounded-xl border border-border bg-card p-3 gap-2 h-full">
       <SaveButton card={card} sourceMessageId={sourceMessageId} />
@@ -58,11 +70,9 @@ export function PlaceCard({ card, sourceMessageId }: PlaceCardProps) {
             Open in Maps
           </a>
         </Button>
-        <Button size="sm" className="flex-1" asChild>
-          <a href={directionsUrl} target="_blank" rel="noopener noreferrer">
-            <Navigation className="w-3.5 h-3.5 mr-1" />
-            Directions
-          </a>
+        <Button size="sm" className="flex-1" onClick={handleDirections}>
+          <Navigation className="w-3.5 h-3.5 mr-1" />
+          Directions
         </Button>
       </div>
     </div>
