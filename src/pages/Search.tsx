@@ -1,15 +1,30 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { toast } from 'sonner'
+import { formatDistanceStrict } from 'date-fns'
 import { ChatInput } from '@/components/chat/ChatInput'
 import { MessageList } from '@/components/chat/MessageList'
 import { ShareButton } from '@/components/chat/ShareButton'
 import { useAgentStream } from '@/hooks/useAgentStream'
 import { useConversation } from '@/hooks/useConversation'
-import type { Message, TraceEvent } from '@/types/agent'
+import type { AgentErrorCode, Message, TraceEvent } from '@/types/agent'
 
 function tempId() {
   return `tmp-${Math.random().toString(36).slice(2, 10)}`
+}
+
+function capToastMessage(code: AgentErrorCode, resetAt: string | undefined): string {
+  const noun = code === 'daily_cost_cap' ? 'cost' : 'search'
+  let window = ''
+  if (resetAt) {
+    const parsed = new Date(resetAt)
+    if (!Number.isNaN(parsed.getTime())) {
+      const now = new Date()
+      const target = parsed.getTime() > now.getTime() ? parsed : now
+      window = ` Resets in ${formatDistanceStrict(target, now)}.`
+    }
+  }
+  return `Daily ${noun} limit reached.${window}`
 }
 
 export default function Search() {
@@ -113,9 +128,18 @@ export default function Search() {
             case 'done':
               appendTrace({ kind: 'done', totalMs: Date.now() - streamStart })
               break
-            case 'error':
-              toast.error(event.message || 'Something went wrong.')
+            case 'error': {
+              if (event.code === 'daily_rate_cap' || event.code === 'daily_cost_cap') {
+                toast.error(capToastMessage(event.code, event.reset_at))
+              } else {
+                toast.error(event.message || 'Something went wrong.')
+              }
+              // Stop consuming — the edge function closes the stream
+              // after an error event, and for cap errors there's no
+              // partial answer to assemble.
+              handle.abort()
               break
+            }
           }
         }
       } catch (err) {
