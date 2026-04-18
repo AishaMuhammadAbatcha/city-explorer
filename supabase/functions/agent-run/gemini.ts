@@ -121,7 +121,7 @@ export async function* streamGemini(request: GeminiRequest): AsyncGenerator<stri
               yield part.text
             }
           }
-        } catch (_err) {
+        } catch {
           // Ignore malformed frames; the stream recovers on the next one.
         }
       }

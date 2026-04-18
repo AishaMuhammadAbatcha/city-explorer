@@ -36,7 +36,7 @@ export function createSSEStream(): SSEWriter {
     if (closed || !controllerRef) return
     try {
       controllerRef.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`))
-    } catch (_err) {
+    } catch {
       // Consumer disconnected — mark closed and drop subsequent writes.
       closed = true
     }
@@ -47,7 +47,7 @@ export function createSSEStream(): SSEWriter {
     closed = true
     try {
       controllerRef.close()
-    } catch (_err) {
+    } catch {
       // Already closed.
     }
   }
