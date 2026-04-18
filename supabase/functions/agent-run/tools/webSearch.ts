@@ -37,17 +37,25 @@ interface CSEApiResponse {
   error?: { message?: string }
 }
 
-export async function runWebSearch(input: WebSearchInput): Promise<WebSearchOutput> {
+/**
+ * Low-level Programmable Search caller. Shared by `runWebSearch` and
+ * the Phase 4 `shopping_search` tool (which over-fetches this to find
+ * enough pages with schema.org/Product JSON-LD).
+ */
+export async function webSearchRaw(
+  query: string,
+  numResults = 5,
+): Promise<WebSearchOutput> {
   const apiKey = Deno.env.get('GOOGLE_API_KEY')
   const cseId = Deno.env.get('GOOGLE_CSE_ID')
   if (!apiKey) throw new Error('GOOGLE_API_KEY is not set')
   if (!cseId) throw new Error('GOOGLE_CSE_ID is not set')
 
-  const num = Math.min(Math.max(input.num_results ?? 5, 1), 10)
+  const num = Math.min(Math.max(numResults, 1), 10)
   const url = new URL('https://www.googleapis.com/customsearch/v1')
   url.searchParams.set('key', apiKey)
   url.searchParams.set('cx', cseId)
-  url.searchParams.set('q', input.query)
+  url.searchParams.set('q', query)
   url.searchParams.set('num', String(num))
 
   const res = await fetch(url.toString())
@@ -64,6 +72,10 @@ export async function runWebSearch(input: WebSearchInput): Promise<WebSearchOutp
   }))
 
   return { items }
+}
+
+export async function runWebSearch(input: WebSearchInput): Promise<WebSearchOutput> {
+  return webSearchRaw(input.query, input.num_results ?? 5)
 }
 
 export const WEB_SEARCH_DECLARATION = {
