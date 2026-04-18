@@ -208,6 +208,50 @@ and return 503/captcha — accepted limitation for MVP.
 
 **Effort**: 1 week
 
+**Status**: Implemented 2026-04-18. Commits (oldest → newest):
+
+- `28a52dd9` db: add user_preferences and saved_results tables
+- `86faaace` types: add user_preferences and saved_results database types
+- `eccab8a4` feat: add hooks for preferences, saved results, and conversation list
+- `6bf95e68` feat: personalize agent with user prefs and prior-turn card summaries
+- `ff561047` feat: add SaveButton overlay for cards
+- `376a7292` feat: add /history conversation list page
+- `d9304b7c` feat: add /saved results page
+- `2af44152` feat: preferences form and anonymous-account upgrade in Settings
+
+Sub-decisions (locked during execution):
+
+- Two new tables: `user_preferences` (PK = user_id) and
+  `saved_results` (one row per bookmark). Dedupe on `saved_results`
+  via a unique expression index on `(user_id, card->>'kind',
+  card->>'id')` — no generated columns.
+- Preferences injected into the system prompt only for fields the user
+  has actually set; null fields are skipped. If all fields are null,
+  no block is emitted.
+- Follow-up context: for each assistant message in the last-10 window
+  that had cards, a transient one-line summary
+  `[Previously shown: N places (Title A, Title B, Title C...), M videos]`
+  is appended to the text passed to Gemini. One line per kind.
+  Never written back to the DB.
+- `saved_results` are deliberately NOT fetched into the agent context —
+  out of Phase 5 scope.
+- `/history` and `/saved` are standalone pages (not Settings tabs) and
+  capped at 50 rows with no pagination.
+- Save button is a small bookmark icon overlay at top-right of each
+  card. Anonymous users see a disabled icon with a "Sign in to save"
+  tooltip.
+- Deleting a conversation on `/history` uses the existing FK cascade
+  to drop its messages and tool_calls.
+- Anonymous-to-permanent upgrade UI lives as a Settings section that
+  calls the existing `upgradeAnonymous` helper from Phase 2; rendered
+  only when `isAnonymous === true`.
+
+Runtime prerequisites (not performed by the agent run):
+
+1. Apply migration `008_memory_and_preferences.sql`.
+2. Redeploy the edge function: `supabase functions deploy agent-run`.
+3. No new environment variables or Google Cloud APIs.
+
 ---
 
 ## Phase 6 — Directions & mobile handoff

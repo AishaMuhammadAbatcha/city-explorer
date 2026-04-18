@@ -130,12 +130,32 @@ Expect fewer products than `max_results` when many of the top N
 organic results are JS-rendered, datacenter-blocked (Amazon/Walmart
 often 503 datacenter IPs), or simply lack Product markup.
 
+## Memory & personalization
+
+Phase 5 additions. Before each turn the edge function reads the
+caller's `user_preferences` row (service-role query scoped by
+`user_id`) and appends a "User preferences" block to the system
+prompt listing only the fields the user has set — `default_location`,
+`currency`, `search_radius_m`, and `price_range_min`/`price_range_max`.
+If no row exists, or every field is null, the prompt is sent
+unchanged. The prior-turn context window (the last 10 messages passed
+to Gemini) is also enriched: for each assistant message with a
+non-empty `cards` array, a transient one-line summary like
+`[Previously shown: 5 places (Place A, Place B, Place C...), 3 videos]`
+is appended to the message text so follow-ups like "show me more like
+that" land grounded. The summary is never written back to
+`messages.content`.
+
 ## Phase scope reminder
 
 - **Phase 2:** at most one tool call per turn.
 - **Phase 3:** ReAct loop, 5 tools, 5-step/30s/$0.05 per-turn
   caps, typed result cards on `messages.cards`.
-- **Phase 4 (this):** `shopping_search` + schema.org/Product parsing,
+- **Phase 4:** `shopping_search` + schema.org/Product parsing,
   server-formatted price strings, shopping guardrails in the system
   prompt.
+- **Phase 5 (this):** `user_preferences` injected into the system
+  prompt, prior-turn card summaries appended to the 10-message
+  context window. `saved_results` are deliberately NOT fetched into
+  agent context.
 - **Phase 7:** per-user $0.10/day cap enforced here.
