@@ -4,6 +4,7 @@ import { formatDistanceToNow } from 'date-fns'
 import { MessageSquare, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { ShareButton } from '@/components/chat/ShareButton'
 import { useConversationList } from '@/hooks/useConversationList'
 
 export default function History() {
@@ -84,15 +85,18 @@ export default function History() {
                     </Button>
                   </div>
                 ) : (
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    aria-label="Delete conversation"
-                    onClick={() => setConfirmingId(c.id)}
-                    className="text-muted-foreground hover:text-destructive"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  <>
+                    <ShareButton conversationId={c.id} compact />
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      aria-label="Delete conversation"
+                      onClick={() => setConfirmingId(c.id)}
+                      className="text-muted-foreground hover:text-destructive"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </>
                 )}
               </li>
             )

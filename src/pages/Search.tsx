@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router'
 import { toast } from 'sonner'
 import { ChatInput } from '@/components/chat/ChatInput'
 import { MessageList } from '@/components/chat/MessageList'
+import { ShareButton } from '@/components/chat/ShareButton'
 import { useAgentStream } from '@/hooks/useAgentStream'
 import { useConversation } from '@/hooks/useConversation'
 import type { Message, TraceEvent } from '@/types/agent'
@@ -144,7 +145,14 @@ export default function Search() {
           </div>
         </div>
       ) : (
-        <MessageList messages={messages} streamingId={streamingId} />
+        <>
+          {conversationId && (
+            <div className="flex items-center justify-end gap-2 px-4 pt-3">
+              <ShareButton conversationId={conversationId} />
+            </div>
+          )}
+          <MessageList messages={messages} streamingId={streamingId} />
+        </>
       )}
       <ChatInput onSend={handleSend} disabled={streaming} />
     </div>
