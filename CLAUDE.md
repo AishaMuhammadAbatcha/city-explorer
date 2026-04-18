@@ -22,7 +22,7 @@ Four `VITE_`-prefixed env vars are required in `.env` (see `.env.example`):
 
 **Stack**: Vite + React 19 + TypeScript, Tailwind 4 (via `@tailwindcss/vite`), shadcn/ui on Radix, React Router 7, Supabase (Postgres + Auth + Storage + Edge Functions). Path alias `@/*` → `src/*` (see `vite.config.ts` and `tsconfig.app.json`).
 
-**Single-backend model**: All backend I/O goes through the Supabase JS client — there is no separate Node/Express API. An earlier Redux + Express + Prisma stack was removed (see `docs/SIMPLIFIED_ARCHITECTURE.md`). Do not reintroduce Redux, Prisma, or a custom auth server; extend via Supabase Edge Functions under `supabase/functions/` instead (`chatbot`, `business-operations`, `send-notification`, `upload-image` already exist there).
+**Single-backend model**: All backend I/O goes through the Supabase JS client — there is no separate Node/Express API. An earlier Redux + Express + Prisma stack was removed (see `docs/SIMPLIFIED_ARCHITECTURE.md`). Do not reintroduce Redux, Prisma, or a custom auth server; extend via Supabase Edge Functions under `supabase/functions/` instead (`upload-image` and `agent-run` exist there; the older `chatbot`, `business-operations`, and `send-notification` functions were removed with the pivot).
 
 **Auth + routing** are the load-bearing layer:
 - `src/contexts/AuthContext.tsx` is the single source of truth for `user`, `session`, and `profile`. It subscribes to `supabase.auth.onAuthStateChange` and fetches the row from `profiles` keyed by `auth.users.id`. It deliberately ignores the `SIGNED_IN` event during initial load to avoid a double profile fetch — preserve this guard when editing.
