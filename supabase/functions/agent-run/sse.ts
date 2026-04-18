@@ -6,9 +6,10 @@
 
 export type SSEEvent =
   | { type: 'conversation_id'; id: string }
+  | { type: 'step_start'; iteration: number; label: string }
   | { type: 'token'; text: string }
   | { type: 'tool_call_start'; tool: string; input: unknown }
-  | { type: 'tool_call_end'; tool: string; output: unknown; duration_ms: number }
+  | { type: 'tool_call_end'; tool: string; output: unknown; duration_ms: number; summary?: string }
   | { type: 'done' }
   | { type: 'error'; message: string }
 

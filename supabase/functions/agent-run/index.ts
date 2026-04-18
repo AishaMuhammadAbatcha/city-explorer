@@ -1,18 +1,29 @@
-// TR-ACE agent-run edge function.
+// TR-ACE agent-run edge function (Phase 3 — multi-step ReAct loop).
 //
 // Flow per request:
-//   1. Verify user JWT (supabase auth) and extract user_id.
-//   2. Create-or-reuse a conversation row (service-role write).
-//   3. Insert the incoming user message (service-role write).
-//   4. Stream SSE back to the client.
-//   5. Ask Gemini for a response, offering web_search + places_search
-//      as function-call tools. At most one tool call this phase.
-//   6. If a function call is returned, execute the tool, persist a
-//      tool_calls row, emit tool_call_start / tool_call_end, then ask
-//      Gemini to synthesize the final answer (streaming).
-//   7. Stream tokens to the client, accumulate the final text, extract
-//      citations from tool output, insert the assistant message row,
-//      emit `done`, close the stream.
+//   1. Verify user JWT, extract user_id.
+//   2. Create-or-reuse a conversation, insert the user message.
+//   3. Open an SSE stream back to the client.
+//   4. Insert an empty assistant placeholder message so tool_calls
+//      can be FK'd as we go.
+//   5. Loop up to 5 iterations (ReAct):
+//      - Emit step_start.
+//      - Call Gemini with current contents + tool declarations.
+//      - If the response carries a functionCall, check the time /
+//        cost circuit breakers, execute the tool, log the tool_call
+//        row with step_number, append the functionCall +
+//        functionResponse to contents, accumulate any typed cards.
+//      - Otherwise break out with the final text.
+//   6. Chunk the final text as tokens, dedupe cards, update the
+//      placeholder message with content + citations + cards, emit
+//      `done`.
+//
+// Circuit breakers:
+//   - 5 iteration hard cap.
+//   - 30 s wall clock.
+//   - $0.05 accumulated tool cost.
+//
+// Costs are logged only (Phase 7 will enforce per-user daily caps).
 
 // @ts-expect-error Deno remote module, resolved at runtime.
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
@@ -23,30 +34,62 @@ import {
   callGemini,
   extractFunctionCall,
   extractText,
-  streamGemini,
   type GeminiContent,
   type GeminiRequest,
 } from './gemini.ts'
-import { runWebSearch, WEB_SEARCH_DECLARATION, type WebSearchOutput } from './tools/webSearch.ts'
+import {
+  runWebSearch,
+  WEB_SEARCH_DECLARATION,
+  WEB_SEARCH_COST_USD,
+  type WebSearchOutput,
+} from './tools/webSearch.ts'
 import {
   runPlacesSearch,
   PLACES_SEARCH_DECLARATION,
+  PLACES_SEARCH_COST_USD,
   type PlacesSearchOutput,
 } from './tools/placesSearch.ts'
+import {
+  runYoutubeSearch,
+  YOUTUBE_SEARCH_DECLARATION,
+  type YouTubeSearchOutput,
+} from './tools/youtubeSearch.ts'
+import {
+  runKnowledgeGraph,
+  KNOWLEDGE_GRAPH_DECLARATION,
+  type KnowledgeGraphOutput,
+} from './tools/knowledgeGraph.ts'
+import {
+  runGeocode,
+  GEOCODE_DECLARATION,
+  GEOCODE_COST_USD,
+  type GeocodeOutput,
+} from './tools/geocode.ts'
 
 // @ts-expect-error Deno global is present at runtime.
 declare const Deno: { env: { get(key: string): string | undefined }; serve(handler: (req: Request) => Promise<Response> | Response): void }
 
-const SYSTEM_INSTRUCTION = `You are TR-ACE, an agentic search assistant that helps users find things online — products, places, facts, articles.
+const MAX_ITERATIONS = 5
+const MAX_WALL_CLOCK_MS = 30_000
+const MAX_TURN_COST_USD = 0.05
+
+const SYSTEM_INSTRUCTION = `You are TR-ACE, an agentic search assistant that helps users find things online — products, places, facts, articles, videos.
+
+You can call up to 5 tools across multiple steps. Plan the smallest set of calls that answers the query well, then write a final markdown answer.
+
+Tools:
+- places_search — real-world locations: restaurants, venues, shops, landmarks, services.
+- web_search — general web: news, tutorials, comparisons, opinions.
+- youtube_search — reviews, vlogs, how-tos, or when the user wants video.
+- knowledge_graph — authoritative summaries of well-known entities.
+- geocode — resolve an ambiguous address to lat/lng BEFORE places_search when helpful. Not an end-user answer on its own.
 
 Rules:
-- If the user asks about real-world places (restaurants, venues, shops, landmarks, services), call places_search.
-- For anything else that requires current information (news, facts, tutorials, comparisons), call web_search.
-- Call at most ONE tool per turn. Use the tool's output to ground your answer.
-- Cite every factual claim with [1], [2]... that map to the tool's result URLs/links. Never invent URLs, prices, phone numbers, addresses, or ratings.
-- If the tool returns nothing useful, say so plainly instead of guessing.
-- Be concise. Prefer short paragraphs and short lists.
-- Markdown is allowed.`
+- Break the user's request into sub-questions and call the right tool for each.
+- Do not call the same tool with the same arguments twice.
+- Cite every factual claim with [1], [2]… that map to the tool output URLs/links. Never invent URLs, prices, phone numbers, addresses, or ratings.
+- When you have enough information, stop calling tools and reply with a concise markdown answer.
+- Prefer short paragraphs and short lists. The UI renders result cards automatically from tool outputs, so don't duplicate full listings in prose — narrate and highlight.`
 
 interface RequestBody {
   message: string
@@ -58,6 +101,49 @@ interface Citation {
   title: string
   snippet?: string
 }
+
+type Card =
+  | {
+      kind: 'place'
+      id: string
+      place_id: string
+      name: string
+      address: string
+      rating?: number
+      rating_count?: number
+      lat: number
+      lng: number
+      maps_url: string
+      snippet?: string
+    }
+  | {
+      kind: 'video'
+      id: string
+      video_id: string
+      title: string
+      channel: string
+      thumbnail: string
+      url: string
+      published_at?: string
+    }
+  | {
+      kind: 'article'
+      id: string
+      title: string
+      snippet: string
+      url: string
+      display_link: string
+      source?: 'web' | 'kg'
+    }
+  | {
+      kind: 'product'
+      id: string
+      title: string
+      price?: string
+      seller?: string
+      image?: string
+      url: string
+    }
 
 function json(status: number, body: unknown, origin: string | null): Response {
   return new Response(JSON.stringify(body), {
@@ -78,6 +164,72 @@ async function parseBody(req: Request): Promise<RequestBody | null> {
   }
 }
 
+function hostOf(url: string): string {
+  try {
+    return new URL(url).host.replace(/^www\./, '')
+  } catch {
+    return url
+  }
+}
+
+function cardsFromWebSearch(out: WebSearchOutput): Card[] {
+  return out.items
+    .filter((it) => !!it.link)
+    .map((it) => ({
+      kind: 'article',
+      id: it.link,
+      title: it.title || it.displayLink || it.link,
+      snippet: it.snippet || '',
+      url: it.link,
+      display_link: it.displayLink || hostOf(it.link),
+      source: 'web',
+    }))
+}
+
+function cardsFromPlaces(out: PlacesSearchOutput): Card[] {
+  return out.places
+    .filter((p) => !!p.id && !!p.location)
+    .map((p) => ({
+      kind: 'place',
+      id: p.id,
+      place_id: p.id,
+      name: p.name,
+      address: p.address,
+      rating: p.rating ?? undefined,
+      rating_count: p.rating_count ?? undefined,
+      lat: p.location!.lat,
+      lng: p.location!.lng,
+      maps_url: p.maps_url,
+    }))
+}
+
+function cardsFromYoutube(out: YouTubeSearchOutput): Card[] {
+  return out.videos.map((v) => ({
+    kind: 'video',
+    id: v.video_id,
+    video_id: v.video_id,
+    title: v.title,
+    channel: v.channel,
+    thumbnail: v.thumbnail,
+    url: v.url,
+    published_at: v.published_at || undefined,
+  }))
+}
+
+function cardsFromKnowledgeGraph(out: KnowledgeGraphOutput): Card[] {
+  return out.entities
+    .filter((e) => !!e.url)
+    .map((e) => ({
+      kind: 'article',
+      id: e.url,
+      title: e.name,
+      snippet: e.detailed_description || e.description || '',
+      url: e.url,
+      display_link: hostOf(e.url),
+      source: 'kg',
+    }))
+}
+
 function citationsFromWebSearch(out: WebSearchOutput): Citation[] {
   return out.items
     .filter((it) => !!it.link)
@@ -87,11 +239,70 @@ function citationsFromWebSearch(out: WebSearchOutput): Citation[] {
 function citationsFromPlaces(out: PlacesSearchOutput): Citation[] {
   return out.places
     .filter((p) => !!p.maps_url)
-    .map((p) => ({
-      url: p.maps_url,
-      title: p.name,
-      snippet: p.address || undefined,
+    .map((p) => ({ url: p.maps_url, title: p.name, snippet: p.address || undefined }))
+}
+
+function citationsFromYoutube(out: YouTubeSearchOutput): Citation[] {
+  return out.videos.map((v) => ({ url: v.url, title: v.title, snippet: v.channel || undefined }))
+}
+
+function citationsFromKnowledgeGraph(out: KnowledgeGraphOutput): Citation[] {
+  return out.entities
+    .filter((e) => !!e.url)
+    .map((e) => ({
+      url: e.url,
+      title: e.name,
+      snippet: e.description || e.detailed_description || undefined,
     }))
+}
+
+function dedupeCards(cards: Card[]): Card[] {
+  const seen = new Set<string>()
+  const out: Card[] = []
+  for (const c of cards) {
+    const key = `${c.kind}:${c.id}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push(c)
+  }
+  return out
+}
+
+function dedupeCitations(citations: Citation[]): Citation[] {
+  const seen = new Set<string>()
+  const out: Citation[] = []
+  for (const c of citations) {
+    if (seen.has(c.url)) continue
+    seen.add(c.url)
+    out.push(c)
+  }
+  return out
+}
+
+function summariseToolOutput(tool: string, output: unknown): string {
+  const o = output as {
+    items?: unknown[]
+    places?: unknown[]
+    videos?: unknown[]
+    entities?: unknown[]
+    results?: unknown[]
+    error?: string
+  }
+  if (o?.error) return `error: ${o.error}`
+  switch (tool) {
+    case 'web_search':
+      return `Found ${o.items?.length ?? 0} articles`
+    case 'places_search':
+      return `Found ${o.places?.length ?? 0} places`
+    case 'youtube_search':
+      return `Found ${o.videos?.length ?? 0} videos`
+    case 'knowledge_graph':
+      return `Found ${o.entities?.length ?? 0} entities`
+    case 'geocode':
+      return `Geocoded ${o.results?.length ?? 0} matches`
+    default:
+      return 'done'
+  }
 }
 
 Deno.serve(async (req: Request) => {
@@ -134,9 +345,6 @@ Deno.serve(async (req: Request) => {
   const body = await parseBody(req)
   if (!body) return json(400, { error: 'invalid body' }, origin)
 
-  // Ensure a conversation row. The user-scoped client enforces RLS on
-  // INSERT; service role handles any downstream writes that must
-  // bypass RLS (tool_calls).
   let conversationId = body.conversation_id
   if (!conversationId) {
     const title = body.message.slice(0, 60)
@@ -150,11 +358,9 @@ Deno.serve(async (req: Request) => {
     }
     conversationId = convo.id as string
   } else {
-    // Touch updated_at so the conversation list reorders.
     await userClient.from('conversations').update({ updated_at: new Date().toISOString() }).eq('id', conversationId)
   }
 
-  // Insert the user message.
   const { error: userMsgErr } = await userClient.from('messages').insert({
     conversation_id: conversationId,
     role: 'user',
@@ -164,7 +370,7 @@ Deno.serve(async (req: Request) => {
     return json(500, { error: `failed to persist user message: ${userMsgErr.message}` }, origin)
   }
 
-  // Load prior turns (up to 10) for context.
+  // Load prior turns for context.
   const { data: priorRows } = await userClient
     .from('messages')
     .select('role, content, created_at')
@@ -179,7 +385,6 @@ Deno.serve(async (req: Request) => {
       role: m.role === 'assistant' ? ('model' as const) : ('user' as const),
       parts: [{ text: m.content }],
     }))
-  // The just-inserted user message should be the last entry already.
 
   const sse = createSSEStream()
   const resp = new Response(sse.stream, {
@@ -192,65 +397,174 @@ Deno.serve(async (req: Request) => {
     try {
       emit({ type: 'conversation_id', id: conversationId! })
 
-      const baseRequest: GeminiRequest = {
-        systemInstruction: { role: 'system', parts: [{ text: SYSTEM_INSTRUCTION }] },
-        tools: [
-          {
-            functionDeclarations: [WEB_SEARCH_DECLARATION, PLACES_SEARCH_DECLARATION],
-          },
-        ],
-        contents: history,
+      // Placeholder assistant row so tool_calls can FK to it as we go.
+      const { data: placeholder, error: placeholderErr } = await adminClient
+        .from('messages')
+        .insert({
+          conversation_id: conversationId,
+          role: 'assistant',
+          content: '',
+          citations: [],
+          cards: [],
+        })
+        .select('id')
+        .single()
+      if (placeholderErr || !placeholder) {
+        throw new Error(`failed to create assistant placeholder: ${placeholderErr?.message ?? 'unknown'}`)
       }
+      const placeholderId = placeholder.id as string
 
-      const first = await callGemini(baseRequest)
-      const fcall = extractFunctionCall(first)
+      const tools = [
+        {
+          functionDeclarations: [
+            WEB_SEARCH_DECLARATION,
+            PLACES_SEARCH_DECLARATION,
+            YOUTUBE_SEARCH_DECLARATION,
+            KNOWLEDGE_GRAPH_DECLARATION,
+            GEOCODE_DECLARATION,
+          ],
+        },
+      ]
 
+      let contents: GeminiContent[] = history
+      const cards: Card[] = []
       let citations: Citation[] = []
-      let toolCallDbId: string | null = null
-      let finalContents: GeminiContent[] = history
-      void toolCallDbId
+      let totalCost = 0
+      let iteration = 0
+      let finalText = ''
+      let stopReason: 'text' | 'iteration_cap' | 'circuit_breaker' = 'text'
+      const startTime = Date.now()
 
-      if (fcall) {
+      while (iteration < MAX_ITERATIONS) {
+        iteration += 1
+        const label = iteration === 1 ? 'Planning' : `Step ${iteration}`
+        emit({ type: 'step_start', iteration, label })
+
+        const reqPayload: GeminiRequest = {
+          systemInstruction: { role: 'system', parts: [{ text: SYSTEM_INSTRUCTION }] },
+          tools,
+          contents,
+        }
+        const geminiResp = await callGemini(reqPayload)
+        const fcall = extractFunctionCall(geminiResp)
+
+        if (!fcall) {
+          finalText = extractText(geminiResp)
+          stopReason = 'text'
+          break
+        }
+
+        // Circuit breakers before running the tool.
+        if (Date.now() - startTime > MAX_WALL_CLOCK_MS || totalCost > MAX_TURN_COST_USD) {
+          stopReason = 'circuit_breaker'
+          finalText = extractText(geminiResp)
+          break
+        }
+
         emit({ type: 'tool_call_start', tool: fcall.name, input: fcall.args })
         const started = Date.now()
         let toolOutput: unknown = {}
         let status: 'success' | 'error' | 'timeout' = 'success'
         let errorMessage: string | null = null
+        let costThisCall = 0
+
         try {
-          if (fcall.name === 'web_search') {
-            const out = await runWebSearch({
-              query: String(fcall.args.query ?? ''),
-              num_results:
-                typeof fcall.args.num_results === 'number' ? (fcall.args.num_results as number) : undefined,
-            })
-            toolOutput = out
-            citations = citationsFromWebSearch(out)
-          } else if (fcall.name === 'places_search') {
-            const out = await runPlacesSearch({
-              query: String(fcall.args.query ?? ''),
-              location: typeof fcall.args.location === 'string' ? (fcall.args.location as string) : undefined,
-              radius_m:
-                typeof fcall.args.radius_m === 'number' ? (fcall.args.radius_m as number) : undefined,
-            })
-            toolOutput = out
-            citations = citationsFromPlaces(out)
-          } else {
-            status = 'error'
-            errorMessage = `unknown tool: ${fcall.name}`
-            toolOutput = { error: errorMessage }
+          switch (fcall.name) {
+            case 'web_search': {
+              const out = await runWebSearch({
+                query: String(fcall.args.query ?? ''),
+                num_results:
+                  typeof fcall.args.num_results === 'number' ? (fcall.args.num_results as number) : undefined,
+              })
+              toolOutput = out
+              costThisCall = WEB_SEARCH_COST_USD
+              citations = citations.concat(citationsFromWebSearch(out))
+              cards.push(...cardsFromWebSearch(out))
+              break
+            }
+            case 'places_search': {
+              const out = await runPlacesSearch({
+                query: String(fcall.args.query ?? ''),
+                location:
+                  typeof fcall.args.location === 'string' ? (fcall.args.location as string) : undefined,
+                radius_m:
+                  typeof fcall.args.radius_m === 'number' ? (fcall.args.radius_m as number) : undefined,
+              })
+              toolOutput = out
+              costThisCall = PLACES_SEARCH_COST_USD
+              citations = citations.concat(citationsFromPlaces(out))
+              cards.push(...cardsFromPlaces(out))
+              break
+            }
+            case 'youtube_search': {
+              const out = await runYoutubeSearch({
+                query: String(fcall.args.query ?? ''),
+                max_results:
+                  typeof fcall.args.max_results === 'number' ? (fcall.args.max_results as number) : undefined,
+              })
+              toolOutput = out
+              costThisCall = 0
+              citations = citations.concat(citationsFromYoutube(out))
+              cards.push(...cardsFromYoutube(out))
+              break
+            }
+            case 'knowledge_graph': {
+              const out = await runKnowledgeGraph({
+                query: String(fcall.args.query ?? ''),
+                limit: typeof fcall.args.limit === 'number' ? (fcall.args.limit as number) : undefined,
+              })
+              toolOutput = out
+              costThisCall = 0
+              citations = citations.concat(citationsFromKnowledgeGraph(out))
+              cards.push(...cardsFromKnowledgeGraph(out))
+              break
+            }
+            case 'geocode': {
+              const out = await runGeocode({ address: String(fcall.args.address ?? '') })
+              toolOutput = out
+              costThisCall = GEOCODE_COST_USD
+              // geocode is a utility — no card, no citation.
+              break
+            }
+            default:
+              status = 'error'
+              errorMessage = `unknown tool: ${fcall.name}`
+              toolOutput = { error: errorMessage }
           }
         } catch (err) {
           status = 'error'
           errorMessage = err instanceof Error ? err.message : String(err)
           toolOutput = { error: errorMessage }
         }
-        const duration = Date.now() - started
-        emit({ type: 'tool_call_end', tool: fcall.name, output: toolOutput, duration_ms: duration })
 
-        // Extend the conversation contents with model's function call
-        // + our function response so Gemini can synthesize.
-        finalContents = [
-          ...history,
+        const duration = Date.now() - started
+        totalCost += costThisCall
+
+        emit({
+          type: 'tool_call_end',
+          tool: fcall.name,
+          output: toolOutput,
+          duration_ms: duration,
+          summary: summariseToolOutput(fcall.name, toolOutput),
+        })
+
+        const { error: tcErr } = await adminClient.from('tool_calls').insert({
+          message_id: placeholderId,
+          tool_name: fcall.name,
+          input: fcall.args as Record<string, unknown>,
+          output: toolOutput as Record<string, unknown>,
+          duration_ms: duration,
+          cost_usd: costThisCall,
+          status,
+          error_message: errorMessage,
+          step_number: iteration,
+        })
+        if (tcErr) {
+          console.error('failed to log tool_call:', tcErr.message)
+        }
+
+        contents = [
+          ...contents,
           { role: 'model', parts: [{ functionCall: fcall }] },
           {
             role: 'function',
@@ -265,81 +579,70 @@ Deno.serve(async (req: Request) => {
           },
         ]
 
-        // We still need a message row to attach tool_calls to, but we
-        // don't have one until the assistant response completes. We
-        // insert a placeholder assistant row now, then update its
-        // content at the end — this lets us FK tool_calls.message_id.
-        const { data: placeholder, error: placeholderErr } = await adminClient
-          .from('messages')
-          .insert({
-            conversation_id: conversationId,
-            role: 'assistant',
-            content: '',
-            citations: [],
-          })
-          .select('id')
-          .single()
-        if (placeholderErr || !placeholder) {
-          throw new Error(`failed to create assistant placeholder: ${placeholderErr?.message ?? 'unknown'}`)
+        if (iteration >= MAX_ITERATIONS) {
+          stopReason = 'iteration_cap'
+          break
         }
-        const placeholderId = placeholder.id as string
-
-        const { error: tcErr } = await adminClient.from('tool_calls').insert({
-          message_id: placeholderId,
-          tool_name: fcall.name,
-          input: fcall.args as Record<string, unknown>,
-          output: toolOutput as Record<string, unknown>,
-          duration_ms: duration,
-          cost_usd: 0,
-          status,
-          error_message: errorMessage,
-        })
-        if (tcErr) {
-          console.error('failed to log tool_call:', tcErr.message)
-        }
-        toolCallDbId = placeholderId
-
-        // Stream the synthesis pass.
-        let assembled = ''
-        const synthRequest: GeminiRequest = { ...baseRequest, contents: finalContents }
-        for await (const chunk of streamGemini(synthRequest)) {
-          assembled += chunk
-          emit({ type: 'token', text: chunk })
-        }
-
-        // Update the placeholder message row with the real content +
-        // citations. Service role because messages_update has no user
-        // policy.
-        const { error: updErr } = await adminClient
-          .from('messages')
-          .update({ content: assembled, citations: citations as unknown as Record<string, unknown>[] })
-          .eq('id', placeholderId)
-        if (updErr) console.error('failed to finalize assistant message:', updErr.message)
-      } else {
-        // No tool call — stream a plain synthesis and persist once done.
-        // We already have the non-streaming first response; stream a
-        // second pass for token delivery to the client.
-        const plainText = extractText(first)
-        if (plainText.length > 0) {
-          // Chunk it manually so the UI still streams.
-          for (const piece of plainText.match(/.{1,80}/gs) ?? [plainText]) {
-            emit({ type: 'token', text: piece })
-          }
-        } else {
-          // Fall back to streamGenerateContent if the first call returned no text.
-          for await (const chunk of streamGemini(baseRequest)) {
-            emit({ type: 'token', text: chunk })
-          }
-        }
-
-        const { error: insErr } = await userClient.from('messages').insert({
-          conversation_id: conversationId,
-          role: 'assistant',
-          content: plainText,
-          citations: [],
-        })
-        if (insErr) console.error('failed to persist assistant message:', insErr.message)
+        // loop again — Gemini now sees the tool response.
       }
+
+      // If we broke because we exhausted iterations without a text reply,
+      // ask Gemini once more with the accumulated context for the final
+      // synthesis (no tools this time, force a text answer).
+      if (stopReason !== 'text' && finalText.length === 0) {
+        try {
+          const synth = await callGemini({
+            systemInstruction: {
+              role: 'system',
+              parts: [{ text: SYSTEM_INSTRUCTION }],
+            },
+            contents: [
+              ...contents,
+              {
+                role: 'user',
+                parts: [
+                  {
+                    text: 'Stop calling tools and write the final answer now, grounded in the tool outputs you already have.',
+                  },
+                ],
+              },
+            ],
+          })
+          finalText = extractText(synth)
+        } catch (err) {
+          console.error('final synthesis failed:', err instanceof Error ? err.message : String(err))
+        }
+      }
+
+      if (stopReason === 'iteration_cap' && finalText.length > 0) {
+        finalText += '\n\n_(Stopped after 5 steps — ask a follow-up to go deeper.)_'
+      } else if (stopReason === 'circuit_breaker') {
+        finalText +=
+          (finalText.length > 0 ? '\n\n' : '') +
+          '_(Stopped early due to time/cost budget — partial results.)_'
+      }
+
+      if (finalText.length === 0) {
+        finalText = 'I could not produce a grounded answer this turn — please rephrase or try again.'
+      }
+
+      // Stream the answer to the client in small chunks so it animates.
+      for (const piece of finalText.match(/.{1,80}/gs) ?? [finalText]) {
+        emit({ type: 'token', text: piece })
+      }
+
+      const dedupedCards = dedupeCards(cards)
+      const dedupedCitations = dedupeCitations(citations)
+
+      const { error: updErr } = await adminClient
+        .from('messages')
+        .update({
+          content: finalText,
+          citations: dedupedCitations as unknown as Record<string, unknown>[],
+          cards: dedupedCards as unknown as Record<string, unknown>[],
+        })
+        .eq('id', placeholderId)
+      if (updErr) console.error('failed to finalize assistant message:', updErr.message)
 
       emit({ type: 'done' })
     } catch (err) {
@@ -351,8 +654,6 @@ Deno.serve(async (req: Request) => {
     }
   }
 
-  // Fire-and-forget the agent loop; the stream is already wired into
-  // the Response body.
   runAgent()
 
   return resp
