@@ -9,11 +9,13 @@ interface AuthContextType {
   profile: Profile | null
   session: Session | null
   loading: boolean
+  isAnonymous: boolean
   signUp: (email: string, password: string, userData?: { full_name?: string }) => Promise<{ user: User | null; error: AuthError | null }>
   signIn: (email: string, password: string) => Promise<{ user: User | null; error: AuthError | null }>
   signOut: () => Promise<{ error: AuthError | null }>
   resetPassword: (email: string) => Promise<{ error: AuthError | null }>
   updateProfile: (updates: Partial<Profile>) => Promise<{ error: Error | null }>
+  upgradeAnonymous: (email: string, password: string) => Promise<{ error: AuthError | null }>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -41,13 +43,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return
         }
 
-        setSession(session)
-        setUser(session?.user ?? null)
-
         if (session?.user) {
+          setSession(session)
+          setUser(session.user)
           await fetchProfile(session.user.id)
         } else {
-          setLoading(false)
+          // No existing session — create an anonymous one so the
+          // search experience works without a forced login.
+          const { data: anonData, error: anonError } = await supabase.auth.signInAnonymously()
+          if (!mounted) return
+          if (anonError) {
+            console.error('Anonymous sign-in failed:', anonError)
+            setSession(null)
+            setUser(null)
+            setLoading(false)
+          } else {
+            setSession(anonData.session)
+            setUser(anonData.user ?? null)
+            setLoading(false)
+          }
         }
 
         isInitializing = false
@@ -190,6 +204,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error }
   }
 
+  const upgradeAnonymous = async (email: string, password: string) => {
+    try {
+      const { error } = await supabase.auth.updateUser({ email, password })
+      return { error }
+    } catch (err) {
+      return { error: err as AuthError }
+    }
+  }
+
   const updateProfile = async (updates: Partial<Profile>) => {
     if (!user) return { error: new Error('No user logged in') }
 
@@ -208,16 +231,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const isAnonymous = user?.is_anonymous === true
+
   const value = {
     user,
     profile,
     session,
     loading,
+    isAnonymous,
     signUp,
     signIn,
     signOut,
     resetPassword,
-    updateProfile
+    updateProfile,
+    upgradeAnonymous
   }
 
   return (
