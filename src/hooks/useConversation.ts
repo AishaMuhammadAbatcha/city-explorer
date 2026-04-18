@@ -15,6 +15,8 @@ interface ToolCallRow {
   output: unknown
   duration_ms: number | null
   step_number: number | null
+  status?: 'success' | 'error' | 'timeout'
+  error_message?: string | null
 }
 
 function traceFromToolCalls(rows: ToolCallRow[]): TraceEvent[] {
@@ -33,12 +35,15 @@ function traceFromToolCalls(rows: ToolCallRow[]): TraceEvent[] {
       input: r.input,
       startedAt: 0,
     })
+    const isError = r.status === 'error' || r.status === 'timeout'
     const summary = summariseOutput(r.tool_name, r.output)
     events.push({
       kind: 'tool_call_end',
       tool: r.tool_name,
       summary,
       duration_ms: r.duration_ms ?? 0,
+      error: isError || undefined,
+      error_message: r.error_message ?? undefined,
     })
   }
   return events
@@ -91,7 +96,7 @@ export function useConversation(conversationId: string | null) {
     if (assistantIds.length > 0) {
       const { data: tcRows } = await supabase
         .from('tool_calls')
-        .select('message_id, tool_name, input, output, duration_ms, step_number')
+        .select('message_id, tool_name, input, output, duration_ms, step_number, status, error_message')
         .in('message_id', assistantIds)
         .order('step_number', { ascending: true })
       toolCallsByMsg = (tcRows ?? []).reduce<Record<string, ToolCallRow[]>>((acc, r) => {

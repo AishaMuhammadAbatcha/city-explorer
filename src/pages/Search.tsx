@@ -116,6 +116,8 @@ export default function Search() {
                 tool: event.tool,
                 summary: event.summary ?? 'done',
                 duration_ms: event.duration_ms,
+                error: event.error,
+                error_message: event.error_message,
               })
               break
             case 'token': {

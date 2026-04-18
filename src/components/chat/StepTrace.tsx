@@ -1,5 +1,15 @@
 import { useEffect, useState } from 'react'
-import { Brain, Globe, MapPin, Youtube, BookOpen, Compass, ChevronDown, CheckCircle2 } from 'lucide-react'
+import {
+  Brain,
+  Globe,
+  MapPin,
+  Youtube,
+  BookOpen,
+  Compass,
+  ChevronDown,
+  CheckCircle2,
+  AlertTriangle,
+} from 'lucide-react'
 import type { TraceEvent } from '@/types/agent'
 
 interface StepTraceProps {
@@ -102,6 +112,20 @@ export function StepTrace({ trace, streaming }: StepTraceProps) {
               )
             }
             if (e.kind === 'tool_call_end') {
+              if (e.error) {
+                return (
+                  <li key={i} className="flex items-start gap-2 pl-4 text-amber-700 dark:text-amber-400">
+                    <AlertTriangle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+                    <span>
+                      {e.tool} failed
+                      {e.error_message && (
+                        <span className="text-muted-foreground"> — {e.error_message}</span>
+                      )}
+                      <span className="opacity-60"> ({(e.duration_ms / 1000).toFixed(1)}s)</span>
+                    </span>
+                  </li>
+                )
+              }
               return (
                 <li key={i} className="flex items-center gap-2 pl-4 text-muted-foreground">
                   <CheckCircle2 className="w-3.5 h-3.5 text-green-600 dark:text-green-500" />
