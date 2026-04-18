@@ -74,6 +74,7 @@ export interface Database {
           role: 'user' | 'assistant' | 'system'
           content: string
           citations: Json
+          cards: Json
           created_at: string
         }
         Insert: {
@@ -82,6 +83,7 @@ export interface Database {
           role: 'user' | 'assistant' | 'system'
           content: string
           citations?: Json
+          cards?: Json
           created_at?: string
         }
         Update: {
@@ -90,6 +92,7 @@ export interface Database {
           role?: 'user' | 'assistant' | 'system'
           content?: string
           citations?: Json
+          cards?: Json
           created_at?: string
         }
       }
@@ -104,6 +107,7 @@ export interface Database {
           cost_usd: number
           status: 'success' | 'error' | 'timeout'
           error_message: string | null
+          step_number: number | null
           created_at: string
         }
         Insert: {
@@ -116,6 +120,7 @@ export interface Database {
           cost_usd?: number
           status: 'success' | 'error' | 'timeout'
           error_message?: string | null
+          step_number?: number | null
           created_at?: string
         }
         Update: {
@@ -128,6 +133,7 @@ export interface Database {
           cost_usd?: number
           status?: 'success' | 'error' | 'timeout'
           error_message?: string | null
+          step_number?: number | null
           created_at?: string
         }
       }
