@@ -5,7 +5,7 @@ import { ChatInput } from '@/components/chat/ChatInput'
 import { MessageList } from '@/components/chat/MessageList'
 import { useAgentStream } from '@/hooks/useAgentStream'
 import { useConversation } from '@/hooks/useConversation'
-import type { Citation, Message } from '@/types/agent'
+import type { Message, TraceEvent } from '@/types/agent'
 
 function tempId() {
   return `tmp-${Math.random().toString(36).slice(2, 10)}`
@@ -18,7 +18,6 @@ export default function Search() {
   const [conversationId, setConversationId] = useState<string | null>(conversationParam)
   const { messages, appendLocal, replaceLast, refetch } = useConversation(conversationId)
   const [streaming, setStreaming] = useState(false)
-  const [activeTool, setActiveTool] = useState<string | null>(null)
   const [streamingId, setStreamingId] = useState<string | null>(null)
   const { sendMessage } = useAgentStream()
   const abortRef = useRef<(() => void) | null>(null)
@@ -43,6 +42,7 @@ export default function Search() {
         role: 'user',
         content: message,
         citations: [],
+        cards: [],
         created_at: new Date().toISOString(),
       }
       const assistantId = tempId()
@@ -51,20 +51,28 @@ export default function Search() {
         role: 'assistant',
         content: '',
         citations: [],
+        cards: [],
+        trace: [],
         created_at: new Date().toISOString(),
       }
       appendLocal(userMsg)
       appendLocal(assistantMsg)
       setStreamingId(assistantId)
       setStreaming(true)
-      setActiveTool(null)
+
+      const streamStart = Date.now()
+
+      const appendTrace = (event: TraceEvent) => {
+        replaceLast((last) =>
+          last.id === assistantId ? { ...last, trace: [...(last.trace ?? []), event] } : last,
+        )
+      }
 
       try {
         const handle = await sendMessage({ message, conversationId })
         abortRef.current = handle.abort
 
         let accumulated = ''
-        let accumulatedCitations: Citation[] = []
 
         for await (const event of handle.stream) {
           switch (event.type) {
@@ -75,24 +83,25 @@ export default function Search() {
               }
               break
             }
+            case 'step_start':
+              appendTrace({ kind: 'step_start', iteration: event.iteration, label: event.label })
+              break
             case 'tool_call_start':
-              setActiveTool(event.tool)
+              appendTrace({
+                kind: 'tool_call_start',
+                tool: event.tool,
+                input: event.input,
+                startedAt: Date.now(),
+              })
               break
-            case 'tool_call_end': {
-              setActiveTool(null)
-              const output = event.output as { items?: Array<{ link?: string; title?: string; snippet?: string }>; places?: Array<{ maps_url?: string; name?: string; address?: string }> }
-              if (Array.isArray(output?.items)) {
-                accumulatedCitations = output.items
-                  .filter((it) => !!it.link)
-                  .map((it) => ({ url: it.link!, title: it.title ?? it.link!, snippet: it.snippet }))
-              } else if (Array.isArray(output?.places)) {
-                accumulatedCitations = output.places
-                  .filter((p) => !!p.maps_url)
-                  .map((p) => ({ url: p.maps_url!, title: p.name ?? p.maps_url!, snippet: p.address }))
-              }
-              replaceLast((last) => ({ ...last, citations: accumulatedCitations }))
+            case 'tool_call_end':
+              appendTrace({
+                kind: 'tool_call_end',
+                tool: event.tool,
+                summary: event.summary ?? 'done',
+                duration_ms: event.duration_ms,
+              })
               break
-            }
             case 'token': {
               accumulated += event.text
               replaceLast((last) =>
@@ -101,6 +110,7 @@ export default function Search() {
               break
             }
             case 'done':
+              appendTrace({ kind: 'done', totalMs: Date.now() - streamStart })
               break
             case 'error':
               toast.error(event.message || 'Something went wrong.')
@@ -113,9 +123,7 @@ export default function Search() {
       } finally {
         setStreaming(false)
         setStreamingId(null)
-        setActiveTool(null)
         abortRef.current = null
-        // Re-sync from DB so we get canonical IDs + server-side citations.
         refetch()
       }
     },
@@ -136,7 +144,7 @@ export default function Search() {
           </div>
         </div>
       ) : (
-        <MessageList messages={messages} streamingId={streamingId} activeTool={activeTool} />
+        <MessageList messages={messages} streamingId={streamingId} />
       )}
       <ChatInput onSend={handleSend} disabled={streaming} />
     </div>

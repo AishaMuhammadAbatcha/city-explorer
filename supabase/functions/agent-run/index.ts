@@ -59,12 +59,7 @@ import {
   KNOWLEDGE_GRAPH_DECLARATION,
   type KnowledgeGraphOutput,
 } from './tools/knowledgeGraph.ts'
-import {
-  runGeocode,
-  GEOCODE_DECLARATION,
-  GEOCODE_COST_USD,
-  type GeocodeOutput,
-} from './tools/geocode.ts'
+import { runGeocode, GEOCODE_DECLARATION, GEOCODE_COST_USD } from './tools/geocode.ts'
 
 // @ts-expect-error Deno global is present at runtime.
 declare const Deno: { env: { get(key: string): string | undefined }; serve(handler: (req: Request) => Promise<Response> | Response): void }

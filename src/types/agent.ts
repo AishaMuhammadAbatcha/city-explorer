@@ -49,12 +49,19 @@ export type ProductCard = BaseCard & {
 
 export type Card = PlaceCard | VideoCard | ArticleCard | ProductCard
 
+export type TraceEvent =
+  | { kind: 'step_start'; iteration: number; label: string }
+  | { kind: 'tool_call_start'; tool: string; input: unknown; startedAt: number }
+  | { kind: 'tool_call_end'; tool: string; summary: string; duration_ms: number }
+  | { kind: 'done'; totalMs: number }
+
 export interface Message {
   id: string
   role: 'user' | 'assistant' | 'system'
   content: string
   citations: Citation[]
   cards: Card[]
+  trace?: TraceEvent[]
   created_at: string
 }
 

@@ -1,5 +1,7 @@
 import type { Message } from '@/types/agent'
 import { AnswerCard } from './AnswerCard'
+import { StepTrace } from './StepTrace'
+import { CardGrid } from './cards'
 
 interface MessageBubbleProps {
   message: Message
@@ -17,11 +19,23 @@ export function MessageBubble({ message, pending }: MessageBubbleProps) {
     )
   }
 
+  const trace = message.trace ?? []
+
   return (
-    <div className="flex justify-start">
-      <div className="max-w-[90%] rounded-2xl bg-muted px-4 py-3">
+    <div className="flex flex-col items-start gap-3 w-full">
+      <div className="max-w-[90%] rounded-2xl bg-muted px-4 py-3 w-full">
+        {trace.length > 0 && (
+          <div className="mb-3">
+            <StepTrace trace={trace} streaming={pending === true} />
+          </div>
+        )}
         <AnswerCard content={message.content} citations={message.citations} pending={pending} />
       </div>
+      {message.cards.length > 0 && (
+        <div className="w-full">
+          <CardGrid cards={message.cards} />
+        </div>
+      )}
     </div>
   )
 }

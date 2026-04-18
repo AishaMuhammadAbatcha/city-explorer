@@ -1,11 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Brain, Globe, MapPin, Youtube, BookOpen, Compass, ChevronDown, CheckCircle2 } from 'lucide-react'
-
-export type TraceEvent =
-  | { kind: 'step_start'; iteration: number; label: string }
-  | { kind: 'tool_call_start'; tool: string; input: unknown; startedAt: number }
-  | { kind: 'tool_call_end'; tool: string; summary: string; duration_ms: number }
-  | { kind: 'done'; totalMs: number }
+import type { TraceEvent } from '@/types/agent'
 
 interface StepTraceProps {
   trace: TraceEvent[]
