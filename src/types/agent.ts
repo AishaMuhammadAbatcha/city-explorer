@@ -56,7 +56,14 @@ export type Card = PlaceCard | VideoCard | ArticleCard | ProductCard
 export type TraceEvent =
   | { kind: 'step_start'; iteration: number; label: string }
   | { kind: 'tool_call_start'; tool: string; input: unknown; startedAt: number }
-  | { kind: 'tool_call_end'; tool: string; summary: string; duration_ms: number }
+  | {
+      kind: 'tool_call_end'
+      tool: string
+      summary: string
+      duration_ms: number
+      error?: boolean
+      error_message?: string
+    }
   | { kind: 'done'; totalMs: number }
 
 export interface Message {
@@ -69,11 +76,21 @@ export interface Message {
   created_at: string
 }
 
+export type AgentErrorCode = 'daily_rate_cap' | 'daily_cost_cap' | 'internal'
+
 export type AgentSSEEvent =
   | { type: 'conversation_id'; id: string }
   | { type: 'step_start'; iteration: number; label: string }
   | { type: 'token'; text: string }
   | { type: 'tool_call_start'; tool: string; input: unknown }
-  | { type: 'tool_call_end'; tool: string; output: unknown; duration_ms: number; summary?: string }
+  | {
+      type: 'tool_call_end'
+      tool: string
+      output: unknown
+      duration_ms: number
+      summary?: string
+      error?: boolean
+      error_message?: string
+    }
   | { type: 'done' }
-  | { type: 'error'; message: string }
+  | { type: 'error'; message: string; code?: AgentErrorCode; reset_at?: string }
