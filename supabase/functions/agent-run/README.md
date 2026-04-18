@@ -1,9 +1,18 @@
 # agent-run
 
 Edge function that powers TR-ACE's search. Accepts a user message +
-optional conversation id, asks Gemini for a response, runs at most
-one tool call (`web_search` or `places_search`), streams the synthesis
-back as Server-Sent Events, and persists the turn.
+optional conversation id, drives a multi-step ReAct loop against
+Gemini (up to 5 tool calls per turn), streams step/trace/token events
+back as Server-Sent Events, and persists the turn with typed result
+cards.
+
+**Tools registered**: `web_search`, `places_search`, `youtube_search`,
+`knowledge_graph`, `geocode`.
+
+**Per-turn circuit breakers** (Phase 3): 5-iteration hard cap, 30 s
+wall clock, $0.05 accumulated tool cost. Exceeding any of these ends
+the loop and appends a truncation note to the final answer. Phase 7
+adds per-user daily caps on top.
 
 ## Required secrets
 
@@ -46,7 +55,13 @@ In the same Google Cloud project, enable:
    queries/day.
 2. **Places API (New)** — backs `places_search`. Free tier: 10K Text
    Search (basic) calls/month.
-3. **Generative Language API** — backs Gemini. Free tier: 15 RPM on
+3. **YouTube Data API v3** — backs `youtube_search`. Free tier:
+   10,000 quota units/day (a search call is 100 units).
+4. **Knowledge Graph Search API** — backs `knowledge_graph`. Free for
+   low-volume use.
+5. **Geocoding API** — backs `geocode`. Free tier: 40K calls/month,
+   then $0.005/call.
+6. **Generative Language API** — backs Gemini. Free tier: 15 RPM on
    `gemini-2.0-flash`.
 
 Create a **Programmable Search Engine** at
@@ -54,10 +69,10 @@ Create a **Programmable Search Engine** at
 Enable "Search the entire web" in settings. Copy the Search engine
 ID (the `cx` value) into `GOOGLE_CSE_ID`.
 
-Create one API key and restrict it to the three APIs above — that
-single key is used for `GOOGLE_API_KEY` (both Custom Search and
-Places) and separately `GEMINI_API_KEY` is the same or a different
-key with Generative Language API enabled.
+Create one API key and restrict it to APIs (1)–(5) above — that
+single key is used for `GOOGLE_API_KEY` across every Google-data
+tool. `GEMINI_API_KEY` is the same or a different key with the
+Generative Language API enabled.
 
 ## Supabase dashboard
 
@@ -78,16 +93,16 @@ Content-Type: application/json
 Response is `text/event-stream`. Event types:
 
 - `conversation_id` — emitted first with the canonical id
+- `step_start` — new ReAct iteration began (`iteration`, `label`)
 - `tool_call_start` — a tool is executing
-- `tool_call_end` — tool finished with output + duration_ms
+- `tool_call_end` — tool finished with output, duration_ms, summary
 - `token` — incremental answer text
 - `done` — final marker
 - `error` — fatal; stream is closed after this
 
 ## Phase scope reminder
 
-- **Phase 2 (this):** at most one tool call per turn. Cost tracking
-  is log-only.
-- **Phase 3:** multi-step plan/act loop, more tools, hard budget
-  per query.
+- **Phase 2:** at most one tool call per turn.
+- **Phase 3 (this):** ReAct loop, 5 tools, 5-step/30s/$0.05 per-turn
+  caps, typed result cards on `messages.cards`.
 - **Phase 7:** per-user $0.10/day cap enforced here.

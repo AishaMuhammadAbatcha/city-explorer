@@ -107,6 +107,36 @@ anonymous sign-ins in Supabase, apply migration 006, set
 
 **Effort**: 1–2 weeks
 
+**Status**: Implemented 2026-04-18. Commits (oldest → newest):
+
+- `697b4f5d` db: add cards column and step_number for multi-step agent
+- `6bccfa52` types: add Card union and step_start SSE event
+- `1403759b` feat: add youtube_search, knowledge_graph, geocode tools
+- `52fff1a2` feat: multi-step ReAct loop in agent-run with cost and iteration caps
+- `5c3085fc` feat: add typed result card components
+- `e6a0eec6` feat: add step trace UI for multi-step agent
+- `55cf2dda` feat: wire multi-step events into chat UI
+
+Sub-decisions (locked during execution):
+
+- ReAct loop (no plan-first phase).
+- Caps: 5 iterations · 30 s wall clock · $0.05 per-turn tool cost.
+- New tools: `youtube_search`, `knowledge_graph`, `geocode` — no
+  `directions` tool; Phase 6 ships the free deep-link pattern and
+  `PlaceCard` already uses it.
+- Cards come from structured tool outputs, not LLM inference. Kinds:
+  `place`, `video`, `article`, `product` (product stub — Phase 4 fills
+  it from schema.org/Product).
+- Embedded inline maps deferred to Phase 6 to keep latency down.
+
+Runtime prerequisites (not performed by the agent run):
+
+1. Apply migration `007_multi_step_agent.sql`.
+2. Enable three additional Google APIs in the same GCP project that
+   holds `GOOGLE_API_KEY`: **YouTube Data API v3**, **Knowledge Graph
+   Search API**, **Geocoding API**.
+3. Redeploy the edge function: `supabase functions deploy agent-run`.
+
 ---
 
 ## Phase 4 — Shopping & seller data (riskiest)
