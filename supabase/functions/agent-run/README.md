@@ -14,6 +14,62 @@ wall clock, $0.05 accumulated tool cost. Exceeding any of these ends
 the loop and appends a truncation note to the final answer. Phase 7
 adds per-user daily caps on top.
 
+## Caps and limits
+
+Phase 7 enforces two rolling-24h caps per user on top of the per-turn
+circuit breakers. Both are checked at the top of every request via a
+single `get_daily_usage(p_user_id)` RPC:
+
+| Cap                | Value  | Covers                              | SSE error code    |
+|--------------------|--------|-------------------------------------|-------------------|
+| Daily cost         | $0.10  | `tool_calls.cost_usd` + `llm_calls.cost_usd` | `daily_cost_cap`  |
+| Daily request rate | 50     | `messages.role='user'` in the last 24h | `daily_rate_cap`  |
+
+When a cap is hit, the edge function emits an SSE `error` event with
+the code above and an ISO `reset_at` timestamp (24h after the oldest
+qualifying record) and closes the stream — no work is done and no
+tokens are spent. The client renders a `sonner` toast with a friendly
+countdown.
+
+### Gemini pricing constants
+
+Hardcoded in `index.ts` for cost tracking:
+
+```ts
+const GEMINI_INPUT_COST_PER_1K  = 0.0001   // $0.10/1M input tokens
+const GEMINI_OUTPUT_COST_PER_1K = 0.0004   // $0.40/1M output tokens
+```
+
+Token counts come from `usageMetadata.promptTokenCount` and
+`usageMetadata.candidatesTokenCount` on each Gemini response; absent
+fields default to 0.
+
+### Graceful tool failures
+
+Each tool executor is wrapped in `try/catch`. On failure the function:
+
+1. Logs a `tool_calls` row with `status='error'` and the truncated
+   error message.
+2. Emits `tool_call_end` with `{ error: true, error_message }` so the
+   UI can render an amber warning row in `StepTrace`.
+3. Feeds `{ error: true, message }` back to Gemini as the
+   `functionResponse` payload so the ReAct loop can acknowledge the
+   failure and try a different tool.
+
+Only an error from the Gemini API itself aborts the turn.
+
+### pg function dependency
+
+Migration `010_hardening.sql` must be applied before deploying this
+version of the function. It creates:
+
+- `llm_calls` table (Gemini invocations; RLS SELECT by owner, service-
+  role INSERT only).
+- `get_daily_usage(p_user_id uuid)` — `SECURITY DEFINER` aggregation
+  returning `{ total_cost_usd, message_count }`. `EXECUTE` is revoked
+  from `PUBLIC`/`anon`/`authenticated` and granted only to
+  `service_role`, so the caps are tamper-proof from the browser.
+
 ## Required secrets
 
 Set the following with the Supabase CLI before deploying. They are

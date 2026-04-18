@@ -346,6 +346,69 @@ slugs; making `tool_calls` visible on public share pages.
 
 **Effort**: 1 week
 
+**Status**: Implemented 2026-04-18. Commits (oldest → newest):
+
+- `f12667bf` db: add llm_calls table and get_daily_usage function
+- `ba419f2a` types: add llm_calls database types
+- `139466cd` feat: enforce daily caps, log LLM calls, handle tool failures gracefully
+- `1a963b9c` feat: add useUsageStats hook and extend SSE error typing
+- `6ab295b5` feat: add /usage page with daily stats and 7-day charts
+- `799980ca` feat: render daily-cap errors with reset countdown toast
+- `77ad28e3` feat: surface tool-call errors in StepTrace
+
+Sub-decisions (locked during execution):
+
+- Two caps, both rolling-24h, both enforced at the top of every
+  request via a single `get_daily_usage` RPC: `$0.10` total cost
+  (tool_calls + llm_calls) and 50 user messages. The per-turn
+  Phase 3 budgets (5 steps, 30 s, $0.05 tool cost) are preserved
+  and layered below.
+- `llm_calls` is a sibling of `tool_calls` with identical shape
+  minus tool-specific fields: id, message_id, model, input_tokens,
+  output_tokens, duration_ms, cost_usd, iteration, status,
+  error_message. Indexed on `(message_id, iteration)`.
+- `get_daily_usage(p_user_id uuid)` is SECURITY DEFINER with
+  `REVOKE FROM PUBLIC/anon/authenticated` and `GRANT EXECUTE TO
+  service_role` only — users can never see each other's spend. The
+  UI reads the underlying RLS-protected tables directly for
+  self-service stats.
+- Gemini pricing (conservative public tier): $0.00010/1K input
+  tokens, $0.00040/1K output tokens. Token counts come from
+  `usageMetadata` in the Gemini response, defaulting to 0 when
+  absent.
+- Tool failures never crash the turn. Each tool executor is wrapped
+  in try/catch; on failure we log a tool_calls row with
+  `status='error'`, emit `tool_call_end` with `{error, message}`,
+  feed a structured `{error, message}` functionResponse back to
+  Gemini so the ReAct loop can pivot, and continue. Only Gemini API
+  errors (auth/quota/5xx) abort the turn.
+- SSE schema extensions: `tool_call_end` gains optional
+  `error`/`error_message`; `error` gains optional
+  `code` (`"daily_rate_cap"` | `"daily_cost_cap"` | `"internal"`)
+  + ISO `reset_at`. Client renders a sonner error with a friendly
+  `formatDistanceStrict(reset_at, now)` countdown for cap errors.
+- Daily cap is also threaded through the turn. If `running_cost +
+  max_next_tool_cost > $0.10`, the loop breaks cleanly with a
+  "(Stopped — daily budget reached.)" note on the partial answer.
+- `/usage` is a standalone page (not inside Settings), linked in
+  SideNav between Saved and Settings with a `BarChart3` icon.
+  Renders today's KPIs, a 7-day cost bar chart, and a 7-day tool
+  leaderboard via `recharts`.
+
+Runtime prerequisites (not performed by the agent run):
+
+1. Apply migration `010_hardening.sql`.
+2. Redeploy the edge function: `supabase functions deploy agent-run`.
+3. No new environment variables or Google Cloud APIs.
+
+Explicitly out of scope for MVP: admin-wide dashboard across all
+users; IP-based rate limiting in front of the edge function;
+ML-based abuse detection; alerting on cap hits; per-user
+configurable caps.
+
+**Closes the initial TR-ACE roadmap.** See "Roadmap 1.0 complete"
+note at the bottom of this document.
+
 ---
 
 ## Cross-cutting risks
@@ -364,3 +427,27 @@ slugs; making `tool_calls` visible on public share pages.
 - Voice input, image-based search
 - Direct checkout / payments inside TR-ACE
 - Non-Google search sources
+
+---
+
+## Roadmap 1.0 complete
+
+Phases 1–7 are shipped. What MVP v1.0 delivers:
+
+- Agentic search over Google's ecosystem (web, places, YouTube,
+  Knowledge Graph, geocode) plus schema.org-parsed shopping, with
+  Gemini as the reasoning layer and a ReAct loop that picks the
+  right tools per query.
+- Streamed, cited answers with typed result cards (place, video,
+  article, product) and a visible step trace.
+- Persistent conversations, saved results, user preferences,
+  conversation sharing with public read-only links, and
+  one-tap Directions deep links.
+- Production safety: per-user $0.10/day + 50 request/day caps,
+  graceful tool-failure handling, structured logging of every tool
+  and LLM invocation, and a self-service `/usage` page.
+
+The next chapter (post-launch) picks up from here — likely
+candidates: admin dashboards, per-user configurable caps, IP-level
+abuse controls, richer directions/maps, and Phase 4 shopping
+coverage beyond schema.org JSON-LD.
