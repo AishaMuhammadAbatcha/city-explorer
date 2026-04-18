@@ -137,6 +137,64 @@ export interface Database {
           created_at?: string
         }
       }
+      user_preferences: {
+        Row: {
+          user_id: string
+          default_location: string | null
+          currency: string | null
+          search_radius_m: number | null
+          price_range_min: number | null
+          price_range_max: number | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          user_id: string
+          default_location?: string | null
+          currency?: string | null
+          search_radius_m?: number | null
+          price_range_min?: number | null
+          price_range_max?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          user_id?: string
+          default_location?: string | null
+          currency?: string | null
+          search_radius_m?: number | null
+          price_range_min?: number | null
+          price_range_max?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      saved_results: {
+        Row: {
+          id: string
+          user_id: string
+          card: Json
+          note: string | null
+          source_message_id: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          card: Json
+          note?: string | null
+          source_message_id?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          card?: Json
+          note?: string | null
+          source_message_id?: string | null
+          created_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
