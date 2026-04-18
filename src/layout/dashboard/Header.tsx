@@ -1,4 +1,4 @@
-import { Menu, User, Settings, LogOut, Sun, Moon } from "lucide-react";
+import { Menu, User, LogOut, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
