@@ -201,12 +201,56 @@ export interface Database {
           created_at?: string
         }
       }
+      llm_calls: {
+        Row: {
+          id: string
+          message_id: string
+          model: string
+          input_tokens: number
+          output_tokens: number
+          duration_ms: number | null
+          cost_usd: number
+          iteration: number | null
+          status: 'success' | 'error'
+          error_message: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          message_id: string
+          model: string
+          input_tokens?: number
+          output_tokens?: number
+          duration_ms?: number | null
+          cost_usd?: number
+          iteration?: number | null
+          status: 'success' | 'error'
+          error_message?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          message_id?: string
+          model?: string
+          input_tokens?: number
+          output_tokens?: number
+          duration_ms?: number | null
+          cost_usd?: number
+          iteration?: number | null
+          status?: 'success' | 'error'
+          error_message?: string | null
+          created_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_daily_usage: {
+        Args: { p_user_id: string }
+        Returns: { total_cost_usd: number; message_count: number }[]
+      }
     }
     Enums: {
       [_ in never]: never
