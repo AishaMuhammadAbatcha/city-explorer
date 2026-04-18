@@ -1,4 +1,5 @@
 import { MapPin, Star, Navigation } from 'lucide-react'
+import { Map, AdvancedMarker } from '@vis.gl/react-google-maps'
 import type { PlaceCard as PlaceCardType } from '@/types/agent'
 import { Button } from '@/components/ui/button'
 import { SaveButton } from './SaveButton'
@@ -7,6 +8,10 @@ interface PlaceCardProps {
   card: PlaceCardType
   sourceMessageId?: string
 }
+
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined
+const MAP_ID = import.meta.env.VITE_MAP_ID as string | undefined
+const MAPS_ENABLED = Boolean(GOOGLE_MAPS_API_KEY && MAP_ID)
 
 function Stars({ rating, count }: { rating?: number; count?: number }) {
   if (typeof rating !== 'number') return null
@@ -26,6 +31,18 @@ export function PlaceCard({ card, sourceMessageId }: PlaceCardProps) {
   return (
     <div className="relative flex flex-col rounded-xl border border-border bg-card p-3 gap-2 h-full">
       <SaveButton card={card} sourceMessageId={sourceMessageId} />
+      {MAPS_ENABLED && (
+        <Map
+          style={{ width: '100%', height: '180px', borderRadius: '0.5rem' }}
+          defaultCenter={{ lat: card.lat, lng: card.lng }}
+          defaultZoom={14}
+          mapId={MAP_ID}
+          gestureHandling="cooperative"
+          disableDefaultUI={true}
+        >
+          <AdvancedMarker position={{ lat: card.lat, lng: card.lng }} />
+        </Map>
+      )}
       <div className="flex items-start justify-between gap-2 pr-8">
         <h4 className="text-sm font-semibold leading-tight line-clamp-2">{card.name}</h4>
       </div>
