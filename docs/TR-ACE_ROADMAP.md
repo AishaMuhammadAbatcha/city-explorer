@@ -266,6 +266,71 @@ Runtime prerequisites (not performed by the agent run):
 
 **Effort**: 3–5 days
 
+**Status**: Implemented 2026-04-18. Commits (oldest → newest):
+
+- `17862afc` db: add share_slug and shared flag for public conversation sharing
+- `5c815482` types: extend conversations with share_slug and shared fields
+- `fbcaed1e` feat: mount Google Maps APIProvider at app root; add useGeolocation hook
+- `40b7d612` feat: render inline interactive map inside PlaceCard
+- `851c060d` feat: pre-fill origin in Maps directions URL when geolocation granted
+- `6a7f0976` feat: add readOnly prop to cards to hide SaveButton on share pages
+- `695127a0` feat: add useShareConversation hook + share button
+- `40400554` feat: add public /share/:slug read-only conversation view
+
+Sub-decisions (locked during execution):
+
+- Inline map is a live `@vis.gl/react-google-maps` `Map` + `AdvancedMarker`
+  at a fixed 180px height, `gestureHandling="cooperative"` and
+  `disableDefaultUI` for compactness. No static-image fallback — MVP
+  accepts one map load per PlaceCard.
+- `APIProvider` is mounted once at app root inside
+  `ThemeProvider > AuthProvider` so public (`/share/:slug`) and
+  protected trees share the same Maps JS context. Missing
+  `VITE_GOOGLE_MAPS_API_KEY` logs a single warning rather than blocking
+  boot; missing `VITE_MAP_ID` skips the map on each card.
+- Geolocation is lazy: requested only on Directions click via
+  `useGeolocation`, which first consults
+  `navigator.permissions.query({name:"geolocation"})` to skip a prompt
+  when already granted/denied. Successful fixes are cached at module
+  scope so a second click in the same session doesn't re-request.
+  `getCurrentPosition` options: `enableHighAccuracy:false`,
+  `timeout:5000`, `maximumAge:300000`. Denial or timeout opens Maps
+  without `origin`.
+- Sharing is an additive migration: `conversations.shared` boolean and
+  `conversations.share_slug` uuid (unique, partial index). Two new
+  public SELECT policies — one on `conversations`, one on `messages` —
+  grant anon read when `shared=true`. Existing owner-only policies are
+  untouched. `tool_calls` are deliberately NOT exposed publicly; the
+  share page renders messages + cards only.
+- Share slugs are lazily generated on the first share and reused on
+  unshare → re-share so a link stays stable across toggle cycles.
+- `/share/:slug` is mounted at the PUBLIC route tree (outside
+  `ProtectedRoute`). It fetches with the anon Supabase client, renders
+  `MessageList`/`MessageBubble`/`CardGrid` with `readOnly=true`, and
+  omits `ChatInput`.
+- `readOnly` prop threads from `MessageList` → `MessageBubble` →
+  `CardGrid` → each of `PlaceCard`/`VideoCard`/`ArticleCard`/`ProductCard`.
+  When true, `SaveButton` is not rendered.
+- Share UI lives in two places: a compact icon on each `/history` row
+  and a full-label button in the Search page header whenever a
+  conversation is loaded. Either click runs `share`, copies the URL to
+  clipboard, and fires a sonner toast.
+
+Runtime prerequisites (not performed by the agent run):
+
+1. Apply migration `009_conversation_sharing.sql`.
+2. No new environment variables, Google Cloud APIs, or secrets.
+3. No edge-function redeploy — Phase 6 is client-only.
+
+Cost note: each `PlaceCard` triggers one Maps JS load. At the current
+free tier (≈28.5K loads/month) this supports ~5,700 search results per
+month at 5 places per search — comfortably within the $0.10/day/user
+budget from Phase 7.
+
+Deferred items: embedded Directions inline with a polyline; multi-stop
+routes; QR codes on share links; explicit "revoke/re-issue" of share
+slugs; making `tool_calls` visible on public share pages.
+
 ---
 
 ## Phase 7 — Hardening

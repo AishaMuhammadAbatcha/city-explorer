@@ -29,6 +29,8 @@ Four `VITE_`-prefixed env vars are required in `.env` (see `.env.example`):
 - `src/routers/Router.tsx` defines `ProtectedRoute` which gates by `profile.role` (`'individual' | 'business' | 'admin'`). Role-gated trees: `/business/*` → business pages, `/dashboard|/explore|/ai|/maps|/settings|/edit-profile|/payment` → individual pages. `/business/:id` is shared (any authenticated user).
 - Post-login redirect logic lives in the `useEffect` at the top of `Router.tsx` — business users land on `/business/dashboard`, individuals on `/dashboard`.
 
+**Sharing**: conversations can be flipped public via `useShareConversation` (Phase 6). The owner sets `conversations.shared = true` + assigns a uuid `share_slug`; `/share/:slug` is a public route (outside `ProtectedRoute`) that fetches the conversation and messages anonymously via the Phase 6 RLS policies and renders them through `MessageList` with `readOnly=true` so `SaveButton` overlays and `ChatInput` are hidden.
+
 **Feature layout**:
 - `src/roles/{business,individual,admin}/pages/` — role-scoped page components (the route targets).
 - `src/components/` — shared UI grouped by domain (`ui/` = shadcn primitives, plus `places/`, `reviews/`, `recommendations/`, `notifications/`, `upload/`, `auth/`, `business/`, `admin/`). Add new shadcn components with `npx shadcn@latest add <name>` — config in `components.json` (style `new-york`, base color `neutral`, alias `@/components`).
