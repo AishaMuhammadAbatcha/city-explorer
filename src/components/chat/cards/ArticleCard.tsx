@@ -1,14 +1,18 @@
 import type { ArticleCard as ArticleCardType } from '@/types/agent'
+import { SaveButton } from './SaveButton'
 
 interface ArticleCardProps {
   card: ArticleCardType
+  sourceMessageId?: string
 }
 
-export function ArticleCard({ card }: ArticleCardProps) {
+export function ArticleCard({ card, sourceMessageId }: ArticleCardProps) {
   const favicon = card.display_link
     ? `https://www.google.com/s2/favicons?domain=${encodeURIComponent(card.display_link)}&sz=64`
     : ''
   return (
+    <div className="relative h-full">
+      <SaveButton card={card} sourceMessageId={sourceMessageId} />
     <a
       href={card.url}
       target="_blank"
@@ -33,5 +37,6 @@ export function ArticleCard({ card }: ArticleCardProps) {
         <p className="text-xs text-muted-foreground line-clamp-2">{card.snippet}</p>
       )}
     </a>
+    </div>
   )
 }

@@ -1,8 +1,10 @@
 import { Play } from 'lucide-react'
 import type { VideoCard as VideoCardType } from '@/types/agent'
+import { SaveButton } from './SaveButton'
 
 interface VideoCardProps {
   card: VideoCardType
+  sourceMessageId?: string
 }
 
 function relativeTime(iso?: string): string {
@@ -17,8 +19,10 @@ function relativeTime(iso?: string): string {
   return `${Math.round(diff / (365 * day))}y ago`
 }
 
-export function VideoCard({ card }: VideoCardProps) {
+export function VideoCard({ card, sourceMessageId }: VideoCardProps) {
   return (
+    <div className="relative h-full">
+      <SaveButton card={card} sourceMessageId={sourceMessageId} />
     <a
       href={card.url}
       target="_blank"
@@ -53,5 +57,6 @@ export function VideoCard({ card }: VideoCardProps) {
         </div>
       </div>
     </a>
+    </div>
   )
 }

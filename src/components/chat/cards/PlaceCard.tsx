@@ -1,9 +1,11 @@
 import { MapPin, Star, Navigation } from 'lucide-react'
 import type { PlaceCard as PlaceCardType } from '@/types/agent'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from './SaveButton'
 
 interface PlaceCardProps {
   card: PlaceCardType
+  sourceMessageId?: string
 }
 
 function Stars({ rating, count }: { rating?: number; count?: number }) {
@@ -17,13 +19,14 @@ function Stars({ rating, count }: { rating?: number; count?: number }) {
   )
 }
 
-export function PlaceCard({ card }: PlaceCardProps) {
+export function PlaceCard({ card, sourceMessageId }: PlaceCardProps) {
   const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination_place_id=${encodeURIComponent(
     card.place_id,
   )}&destination=${encodeURIComponent(card.name)}`
   return (
-    <div className="flex flex-col rounded-xl border border-border bg-card p-3 gap-2 h-full">
-      <div className="flex items-start justify-between gap-2">
+    <div className="relative flex flex-col rounded-xl border border-border bg-card p-3 gap-2 h-full">
+      <SaveButton card={card} sourceMessageId={sourceMessageId} />
+      <div className="flex items-start justify-between gap-2 pr-8">
         <h4 className="text-sm font-semibold leading-tight line-clamp-2">{card.name}</h4>
       </div>
       <Stars rating={card.rating} count={card.rating_count} />

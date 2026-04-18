@@ -6,11 +6,12 @@ import { ProductCard } from './ProductCard'
 
 interface CardGridProps {
   cards: Card[]
+  sourceMessageId?: string
 }
 
 const KIND_ORDER: Card['kind'][] = ['place', 'video', 'product', 'article']
 
-export function CardGrid({ cards }: CardGridProps) {
+export function CardGrid({ cards, sourceMessageId }: CardGridProps) {
   if (cards.length === 0) return null
 
   const grouped: Record<Card['kind'], Card[]> = {
@@ -31,13 +32,37 @@ export function CardGrid({ cards }: CardGridProps) {
           {grouped[kind].map((c) => {
             switch (c.kind) {
               case 'place':
-                return <PlaceCard key={`${c.kind}:${c.id}`} card={c} />
+                return (
+                  <PlaceCard
+                    key={`${c.kind}:${c.id}`}
+                    card={c}
+                    sourceMessageId={sourceMessageId}
+                  />
+                )
               case 'video':
-                return <VideoCard key={`${c.kind}:${c.id}`} card={c} />
+                return (
+                  <VideoCard
+                    key={`${c.kind}:${c.id}`}
+                    card={c}
+                    sourceMessageId={sourceMessageId}
+                  />
+                )
               case 'article':
-                return <ArticleCard key={`${c.kind}:${c.id}`} card={c} />
+                return (
+                  <ArticleCard
+                    key={`${c.kind}:${c.id}`}
+                    card={c}
+                    sourceMessageId={sourceMessageId}
+                  />
+                )
               case 'product':
-                return <ProductCard key={`${c.kind}:${c.id}`} card={c} />
+                return (
+                  <ProductCard
+                    key={`${c.kind}:${c.id}`}
+                    card={c}
+                    sourceMessageId={sourceMessageId}
+                  />
+                )
             }
           })}
         </div>

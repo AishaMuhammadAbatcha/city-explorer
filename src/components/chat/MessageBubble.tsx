@@ -33,7 +33,7 @@ export function MessageBubble({ message, pending }: MessageBubbleProps) {
       </div>
       {message.cards.length > 0 && (
         <div className="w-full">
-          <CardGrid cards={message.cards} />
+          <CardGrid cards={message.cards} sourceMessageId={message.id} />
         </div>
       )}
     </div>

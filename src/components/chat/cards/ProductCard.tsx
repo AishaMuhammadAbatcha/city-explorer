@@ -2,12 +2,14 @@ import { useState } from 'react'
 import { ShieldCheck, ShoppingBag } from 'lucide-react'
 import type { ProductCard as ProductCardType } from '@/types/agent'
 import { Button } from '@/components/ui/button'
+import { SaveButton } from './SaveButton'
 
 interface ProductCardProps {
   card: ProductCardType
+  sourceMessageId?: string
 }
 
-export function ProductCard({ card }: ProductCardProps) {
+export function ProductCard({ card, sourceMessageId }: ProductCardProps) {
   const [imageFailed, setImageFailed] = useState(false)
   const showImage = !!card.image && !imageFailed
   const contactHref = card.seller_contact
@@ -17,7 +19,8 @@ export function ProductCard({ card }: ProductCardProps) {
     : null
 
   return (
-    <div className="flex flex-col rounded-xl border border-border bg-card overflow-hidden h-full">
+    <div className="relative flex flex-col rounded-xl border border-border bg-card overflow-hidden h-full">
+      <SaveButton card={card} sourceMessageId={sourceMessageId} />
       <div className="relative aspect-square bg-muted">
         {showImage ? (
           <img
