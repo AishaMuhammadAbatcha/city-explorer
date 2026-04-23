@@ -46,6 +46,7 @@ function SideNav({ drawerWidth, handleDrawerToggle, mobileOpen }: Props) {
 
   const navItems = [
     { text: "Search", link: "/search", icon: Search },
+    { text: "Map", link: "/map", icon: Map },
     { text: "History", link: "/history", icon: History },
     { text: "Saved", link: "/saved", icon: Bookmark },
     { text: "Usage", link: "/usage", icon: BarChart3 },
@@ -224,7 +225,7 @@ function SideNav({ drawerWidth, handleDrawerToggle, mobileOpen }: Props) {
         <div
           ref={sideNavRef}
           className={cn(
-            "fixed inset-y-0 left-0 z-40 w-[var(--drawer-width)] transform transition-transform duration-300 ease-in-out sm:hidden",
+            "fixed inset-y-0 left-0 z-50 w-[var(--drawer-width)] transform transition-transform duration-300 ease-in-out sm:hidden",
             mobileOpen ? "translate-x-0" : "-translate-x-full"
           )}
         >
@@ -233,7 +234,7 @@ function SideNav({ drawerWidth, handleDrawerToggle, mobileOpen }: Props) {
 
         <div
           className={cn(
-            "hidden sm:block fixed inset-y-0 left-0 z-40 transition-all duration-300 ease-in-out",
+            "hidden sm:block fixed inset-y-0 left-0 z-50 transition-all duration-300 ease-in-out",
             isExpanded ? "w-[var(--drawer-width)]" : "w-[var(--collapsed-width)]"
           )}
         >

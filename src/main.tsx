@@ -22,23 +22,22 @@ window.addEventListener('unhandledrejection', (e) => {
   console.error('Unhandled promise rejection:', e.reason);
 });
 
-// Log environment variables (excluding sensitive ones)
-console.log('Environment check:', {
-  hasSupabaseUrl: !!import.meta.env.VITE_SUPABASE_URL,
-  hasSupabaseKey: !!import.meta.env.VITE_SUPABASE_ANON_KEY,
-  hasGoogleMapsKey: !!import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
-  mode: import.meta.env.MODE,
-  dev: import.meta.env.DEV,
-  prod: import.meta.env.PROD
-});
+if (import.meta.env.DEV) {
+  console.log('Environment check:', {
+    hasSupabaseUrl: !!import.meta.env.VITE_SUPABASE_URL,
+    hasSupabaseKey: !!import.meta.env.VITE_SUPABASE_ANON_KEY,
+    hasGoogleMapsKey: !!import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
+    mode: import.meta.env.MODE,
+    dev: import.meta.env.DEV,
+    prod: import.meta.env.PROD
+  });
+}
 
 try {
   const rootElement = document.getElementById("root");
   if (!rootElement) {
     throw new Error("Root element not found");
   }
-
-  console.log('Starting React app...');
 
   createRoot(rootElement).render(
     <StrictMode>
@@ -58,8 +57,6 @@ try {
       </BrowserRouter>
     </StrictMode>
   );
-
-  console.log('React app rendered successfully');
 } catch (error) {
   console.error('Failed to render React app:', error);
 

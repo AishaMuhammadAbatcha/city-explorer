@@ -1,3 +1,5 @@
+import React from 'react'
+
 // Responsive design utilities and breakpoints
 export const breakpoints = {
   xs: '475px',
@@ -47,16 +49,15 @@ export const responsive = {
 
 // Media query hooks
 export function useMediaQuery(query: string): boolean {
-  if (typeof window === 'undefined') return false
-
-  const mediaQuery = window.matchMedia(query)
-  const [matches, setMatches] = React.useState(mediaQuery.matches)
+  const [matches, setMatches] = React.useState(() => window.matchMedia(query).matches)
 
   React.useEffect(() => {
+    const mediaQuery = window.matchMedia(query)
     const handler = (event: MediaQueryListEvent) => setMatches(event.matches)
+    setMatches(mediaQuery.matches)
     mediaQuery.addEventListener('change', handler)
     return () => mediaQuery.removeEventListener('change', handler)
-  }, [mediaQuery])
+  }, [query])
 
   return matches
 }
@@ -155,7 +156,5 @@ export const a11y = {
   // Skip link
   skipLink: 'sr-only focus:not-sr-only focus:absolute focus:top-0 focus:left-0 z-50 bg-white p-4 text-black'
 }
-
-import React from 'react'
 
 export default responsive

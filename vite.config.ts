@@ -36,7 +36,7 @@ export default defineConfig({
             '@radix-ui/react-tabs',
             '@radix-ui/react-tooltip',
           ],
-          'maps-vendor': ['@googlemaps/js-api-loader', '@vis.gl/react-google-maps'],
+          'maps-vendor': ['@vis.gl/react-google-maps'],
           'supabase-vendor': ['@supabase/supabase-js'],
         },
       },

@@ -10,6 +10,7 @@ import Settings from "@/pages/Settings";
 import History from "@/pages/History";
 import Saved from "@/pages/Saved";
 import Usage from "@/pages/Usage";
+import MapPage from "@/pages/Map";
 import ShareView from "@/pages/ShareView";
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -79,6 +80,7 @@ const Router = () => {
         }
       >
         <Route path="/search" element={<Search />} />
+        <Route path="/map" element={<MapPage />} />
         <Route path="/history" element={<History />} />
         <Route path="/saved" element={<Saved />} />
         <Route path="/usage" element={<Usage />} />

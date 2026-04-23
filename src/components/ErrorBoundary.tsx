@@ -115,6 +115,7 @@ function DefaultErrorFallback({ error, retry }: { error?: Error; retry: () => vo
 }
 
 // Higher-order component for wrapping components with error boundary
+// eslint-disable-next-line react-refresh/only-export-components
 export function withErrorBoundary<P extends object>(
   Component: React.ComponentType<P>,
   fallback?: React.ComponentType<{ error?: Error; retry: () => void }>
@@ -133,6 +134,7 @@ export function withErrorBoundary<P extends object>(
 }
 
 // Hook for handling async errors in functional components
+// eslint-disable-next-line react-refresh/only-export-components
 export function useErrorHandler() {
   const [error, setError] = React.useState<Error | null>(null)
 

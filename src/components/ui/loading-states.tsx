@@ -179,12 +179,9 @@ export function DashboardStatsSkeleton() {
   )
 }
 
-interface LoadingButtonProps {
+interface LoadingButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   loading?: boolean
   children: React.ReactNode
-  className?: string
-  disabled?: boolean
-  [key: string]: any
 }
 
 export function LoadingButton({

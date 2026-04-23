@@ -5,6 +5,7 @@ import { formatDistanceStrict } from 'date-fns'
 import { ChatInput } from '@/components/chat/ChatInput'
 import { MessageList } from '@/components/chat/MessageList'
 import { ShareButton } from '@/components/chat/ShareButton'
+import { TrendingPlacesModal } from '@/components/TrendingPlacesModal'
 import { useAgentStream } from '@/hooks/useAgentStream'
 import { useConversation } from '@/hooks/useConversation'
 import type { AgentErrorCode, Message, TraceEvent } from '@/types/agent'
@@ -30,6 +31,7 @@ function capToastMessage(code: AgentErrorCode, resetAt: string | undefined): str
 export default function Search() {
   const [searchParams, setSearchParams] = useSearchParams()
   const conversationParam = searchParams.get('c')
+  const [trendingOpen, setTrendingOpen] = useState(true)
 
   const [conversationId, setConversationId] = useState<string | null>(conversationParam)
   const { messages, appendLocal, replaceLast, refetch } = useConversation(conversationId)
@@ -181,6 +183,7 @@ export default function Search() {
         </>
       )}
       <ChatInput onSend={handleSend} disabled={streaming} />
+      <TrendingPlacesModal open={trendingOpen} onOpenChange={setTrendingOpen} />
     </div>
   )
 }

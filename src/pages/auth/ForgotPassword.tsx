@@ -31,7 +31,8 @@ export default function ForgotPassword() {
         setSuccess('Password reset instructions have been sent to your email.')
       }
     } catch (err) {
-      setError('An unexpected error occurred')
+      console.error('resetPassword failed:', err)
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred')
     } finally {
       setLoading(false)
     }

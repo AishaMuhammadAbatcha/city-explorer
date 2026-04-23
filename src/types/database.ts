@@ -242,6 +242,35 @@ export interface Database {
           created_at?: string
         }
       }
+      trending_cache: {
+        Row: {
+          id: string
+          geocell_lat: number
+          geocell_lng: number
+          category: string
+          places: Json
+          expires_at: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          geocell_lat: number
+          geocell_lng: number
+          category: string
+          places?: Json
+          expires_at: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          geocell_lat?: number
+          geocell_lng?: number
+          category?: string
+          places?: Json
+          expires_at?: string
+          created_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never

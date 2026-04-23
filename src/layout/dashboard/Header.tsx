@@ -41,7 +41,7 @@ function Header({ drawerWidth, collapsedWidth, handleDrawerToggle }: Props) {
   return (
     <div
       style={cssVars}
-      className="fixed top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border py-2 px-4 w-full sm:ml-[var(--collapsed-width)] sm:w-[calc(100%_-_var(--collapsed-width))] transition-all duration-300"
+      className="fixed top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border py-2 px-4 w-full sm:ml-[var(--collapsed-width)] sm:w-[calc(100%_-_var(--collapsed-width))] transition-all duration-300"
     >
       <div className="flex items-center justify-between w-full max-w-full">
         <div className="flex items-center gap-4">

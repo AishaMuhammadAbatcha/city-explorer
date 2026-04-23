@@ -4,8 +4,6 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import EnvDebug from "@/components/EnvDebug";
 
 function App() {
-  console.log('App component rendering...');
-
   return (
     <ErrorBoundary>
       <Router />
