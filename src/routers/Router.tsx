@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Navigate, Outlet, Route, Routes, useNavigate, useLocation } from "react-router";
 import { useAuth } from "@/contexts/AuthContext";
 import Layout from "@/layout/dashboard/Layout";
+import Landing from "@/pages/Landing";
 import Login from "@/pages/auth/Login";
 import Signup from "@/pages/auth/Signup";
 import ForgotPassword from "@/pages/auth/ForgotPassword";
@@ -39,15 +40,19 @@ const NoNav = () => (
 );
 
 const Router = () => {
-  const { user, loading } = useAuth();
+  const { user, isAnonymous, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
-    if (user && (location.pathname === "/" || location.pathname === "/login" || location.pathname === "/signup")) {
-      navigate("/search");
+    // Anonymous users (auto-signed in on boot) should still see the landing page at "/".
+    // Only redirect real authenticated users away from the marketing page and auth screens.
+    if (user && !isAnonymous) {
+      if (location.pathname === "/" || location.pathname === "/login" || location.pathname === "/signup") {
+        navigate("/search");
+      }
     }
-  }, [user, location.pathname, navigate]);
+  }, [user, isAnonymous, location.pathname, navigate]);
 
   if (loading) {
     return (
@@ -64,7 +69,7 @@ const Router = () => {
     <Routes>
       {/* Public routes */}
       <Route element={<NoNav />}>
-        <Route path="/" element={<Login />} />
+        <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />

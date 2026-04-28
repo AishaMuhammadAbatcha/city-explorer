@@ -1,4 +1,5 @@
 @import url("https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=DM+Sans:opsz,wght@9..40,300..800&family=JetBrains+Mono:wght@400..700&display=swap");
 
 @import "tailwindcss";
 
@@ -386,5 +387,161 @@
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================================
+   TRACE LANDING — typography utilities + keyframe animations
+   ============================================================ */
+.font-display {
+  font-family: "Playfair Display", "Canela", Georgia, serif;
+  font-feature-settings: "ss01", "liga";
+  letter-spacing: -0.02em;
+}
+.font-body {
+  font-family: "DM Sans", "Sora", system-ui, sans-serif;
+}
+.font-mono-trace {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+}
+
+/* Trace brand colors as utilities */
+.bg-trace-midnight { background-color: #0A0F1E; }
+.bg-trace-ivory { background-color: #F7F5F0; }
+.bg-trace-gold { background-color: #C9A84C; }
+.bg-trace-teal { background-color: #00C2A8; }
+.bg-trace-blue { background-color: #1E5EFF; }
+.text-trace-midnight { color: #0A0F1E; }
+.text-trace-gold { color: #C9A84C; }
+.text-trace-teal { color: #00C2A8; }
+.text-trace-blue { color: #1E5EFF; }
+.text-trace-muted { color: #6B7280; }
+.border-trace-gold { border-color: #C9A84C; }
+.ring-trace-gold { --tw-ring-color: #C9A84C; }
+
+/* Hero stagger entrance — sequential reveal of three lines */
+@keyframes trace-rise-in {
+  0% { opacity: 0; transform: translate3d(-24px, 14px, 0); filter: blur(6px); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0); filter: blur(0); }
+}
+.trace-rise { animation: trace-rise-in 900ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.trace-rise-1 { animation-delay: 100ms; }
+.trace-rise-2 { animation-delay: 280ms; }
+.trace-rise-3 { animation-delay: 460ms; }
+.trace-rise-4 { animation-delay: 700ms; }
+.trace-rise-5 { animation-delay: 900ms; }
+
+/* Dashed route line that travels across the hero */
+@keyframes trace-route-dash {
+  0% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: -240; }
+}
+.trace-route-line {
+  stroke-dasharray: 8 12;
+  animation: trace-route-dash 7s linear infinite;
+}
+
+/* Slow drift for ambient backgrounds */
+@keyframes trace-drift {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -10px, 0); }
+}
+.trace-drift { animation: trace-drift 8s ease-in-out infinite; }
+
+/* Pulse glow for active tracking dots */
+@keyframes trace-pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0, 194, 168, 0.55); }
+  50% { box-shadow: 0 0 0 14px rgba(0, 194, 168, 0); }
+}
+.trace-pulse { animation: trace-pulse-glow 2.2s ease-out infinite; }
+
+/* Ken-Burns slow zoom for hero photography */
+@keyframes trace-ken-burns {
+  0% { transform: scale(1.05) translate3d(0, 0, 0); }
+  100% { transform: scale(1.18) translate3d(-1.5%, -1%, 0); }
+}
+.trace-ken-burns { animation: trace-ken-burns 22s ease-in-out infinite alternate; }
+
+/* On-scroll reveal — toggled by useInView hook adding .trace-in */
+.trace-reveal {
+  opacity: 0;
+  transform: translate3d(0, 28px, 0);
+  transition: opacity 800ms cubic-bezier(0.22, 1, 0.36, 1),
+              transform 800ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.trace-reveal.trace-in {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+/* Glassmorphism surface */
+.trace-glass {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.trace-glass-light {
+  background: rgba(10, 15, 30, 0.04);
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  border: 1px solid rgba(10, 15, 30, 0.08);
+}
+
+/* Gold leaf divider */
+.trace-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #C9A84C 50%, transparent);
+  opacity: 0.5;
+}
+
+/* Topographic line texture (CSS-generated, no asset) */
+.trace-topo {
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      rgba(201, 168, 76, 0.045) 0,
+      rgba(201, 168, 76, 0.045) 1px,
+      transparent 1px,
+      transparent 60px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(201, 168, 76, 0.045) 0,
+      rgba(201, 168, 76, 0.045) 1px,
+      transparent 1px,
+      transparent 60px
+    );
+}
+
+/* Marquee for prompt chips */
+@keyframes trace-marquee {
+  0% { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(-50%, 0, 0); }
+}
+.trace-marquee { animation: trace-marquee 28s linear infinite; }
+.trace-marquee-slow { animation: trace-marquee 42s linear infinite; }
+
+/* Travelling dot along a route */
+@keyframes trace-travel {
+  0% { offset-distance: 0%; }
+  100% { offset-distance: 100%; }
+}
+.trace-travel { animation: trace-travel 4s linear infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .trace-rise,
+  .trace-route-line,
+  .trace-drift,
+  .trace-pulse,
+  .trace-ken-burns,
+  .trace-marquee,
+  .trace-marquee-slow,
+  .trace-travel {
+    animation: none !important;
+  }
+  .trace-reveal {
+    opacity: 1;
+    transform: none;
   }
 }
